@@ -37,7 +37,7 @@ void task2(void)
 	printf("=%.2f\n", result);
 }
 
-void task3(void)
+void task3_english(void)
 {
 	char input;
 	printf("введите букву английского алфавита: ");
@@ -50,4 +50,39 @@ void task3(void)
 	}
 
 	printf("%d\n", (int)input-96);
+}
+
+struct bykva 
+{
+	int place;
+	char value;
+};
+
+const int alphavit[] = {
+	-96, -95, -94, -93, -92, -91, -15, -90, 
+	-89, -88, -87, -86, -85, -84, -83, -82, 
+	-81, -32, -31, -30, -29, -28, -27, -26, 
+	-25, -24, -23, -22, -21, -20, -19, -18, -17, 
+};
+
+void task3_rus(void) 
+{
+	char input;
+	printf("введите букву русского алфавита: ");
+
+	if (!scanf("%c", &input)) 
+	{
+		printf("\nвведена не буква\n\n");
+		return;
+	}
+	for (int i = 0; i < 33; ++i) 
+	{
+		if ((int)input == alphavit[i]) 
+		{
+			printf("\nномер: %d\n\n", ++i);
+			return;
+		}
+	}
+
+	printf("\nнет такой буквы в алфавите\n\n");
 }
