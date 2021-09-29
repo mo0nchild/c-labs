@@ -15,8 +15,8 @@ void task1(void)
 	else printf("\n1) год %d не високосный\n\n", year);
 
 	if ((year % 4 == 0 && year % 100 != 0) ||
-		year % 400 == 0) printf("2)год %d високосный\n\n", year);
-	else printf("2)год %d не високосный\n\n", year);
+		year % 400 == 0) printf("2) год %d високосный\n\n", year);
+	else printf("2) год %d не високосный\n\n", year);
 }
 
 double F(x) 
