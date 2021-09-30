@@ -50,7 +50,8 @@ void task1(void)
 	if (!input_action("введите начальное число: ", &n) || 
 		!input_action("введите конечное число: ", &m))
 	{
-		return printf("\nвведено не число\n\n");
+		printf("\nвведено не число\n\n");
+		return;
 	}
 
 	for (int i = m; i >= n; --i)
