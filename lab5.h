@@ -55,7 +55,7 @@ void task3(void)
 
 double F(double x, double y) 
 {
-	double t = 0.5;
+	const double t = 0.5;
 	return (
 		(pow(sin(x), 3) + log(2 * y + 3 * x)) / 
 		(pow(t, exp(1)) + sqrt(x))
