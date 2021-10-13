@@ -11,8 +11,8 @@
 #define WHITE_CELL 0
 #define BLACK_CELL -1
 
-#define HORIZONTAL 1
-#define VERTICAL 2
+#define HORIZ 1
+#define VERTIC 7
 
 #define LIFE_COUNT 3
 
@@ -25,14 +25,15 @@ enum KEY_CODE
     KEY_SPACE = 32
 };
 
-struct CELL
+typedef struct CELL
 {
     int free_cells_x, free_cells_y;
     int check_value;
-}
-field[7][7] =
+} CELL;
+
+CELL field[7][7] =
 {
-    {{7,7,0},{7,7,8},{7,7,0},{7,7,0},{7,7,0},{7,7,0},{7,7,0}},
+    {{7,7,0},{7,7,8},{7,7,0},{7,7,0},{7,7,0},{7,7,0},{7,7,9}},
     {{7,7,5},{7,7,3},{7,7,0},{7,7,0},{7,7,0},{7,7,3},{7,7,4}},
     {{7,7,0},{7,7,0},{7,7,0},{7,7,0},{7,7,4},{7,7,0},{7,7,0}},
     {{7,7,0},{7,7,4},{7,7,0},{7,7,0},{7,7,0},{7,7,6},{7,7,0}},
@@ -41,12 +42,64 @@ field[7][7] =
     {{7,7,2},{7,7,0},{7,7,0},{7,7,0},{7,7,0},{7,7,5},{7,7,0}}
 };
 
+//чтобы убрать два условия необходимо пересобрать двумерный массив в одномерный и работать с клетками используя один индекс
+//чтобы перемещаться вдоль линий(х или у) необходимо = у * 7 + х;
+
+typedef struct POSITION { int * x, *y; } POS;
+POS set_POS(int * x, int * y) 
+{
+    POS pos = { .x = x, .y = y };
+    return pos;
+}
+
+_Bool check_axis(int x, int y);
+_Bool draw_field(int pos_x, int pos_y, _Bool* trigger,
+    HANDLE* c, _Bool* click);
+void run_app(void);
+
+
+//void set_line(int dir, int * last, int i, int const_pos)
+//{
+//    int* x, * y, cell = i - (*last);
+//    if (dir == HORIZ) 
+//    {
+//        x = last;
+//        y = &const_pos;
+//    } 
+//    else 
+//    {
+//        x = &const_pos;
+//        y = last;
+//    }
+//    for (; (*last) < i; (*last)++)
+//    {
+//        int* ptr_cell = (dir == HORIZ) ? &field[*y][*x].free_cells_x 
+//            : &field[*y][*x].free_cells_y;
+//        *ptr_cell = cell;
+//    }
+//    (*last)++;
+//}
+
+void set_line(int dir, int* last, int i, int * cell)
+{
+    int value = i - (*last);
+    for (; (*last) < i; (*last)++)
+    {
+        *cell = value;
+        cell += (3 * dir);
+    }
+    (*last)++;
+}
+
 _Bool check_axis(int x, int y)
 {
+    if (field[y][x].check_value > 0) return;
+    field[y][x].check_value = (field[y][x].check_value == BLACK_CELL ?
+        WHITE_CELL : BLACK_CELL);
+
     int cell_y = 0, cell_x = 0, last_y = 0, last_x = 0;
     for (int i = 0; i <= 7; i++)
     {
-
         if (field[y][i].check_value == BLACK_CELL || i == 7)
         {
             cell_x = i - last_x;
@@ -55,27 +108,40 @@ _Bool check_axis(int x, int y)
         }
         if (field[i][x].check_value == BLACK_CELL || i == 7)
         {
-            cell_y = i - last_y;
+            /*cell_y = i - last_y;
             for (; last_y < i; last_y++) field[last_y][x].free_cells_y = cell_y;
-            last_y++;
+            last_y++;*/
+            set_line(VERTIC, &last_y, i, &field[last_y][x].free_cells_y);
         }
+
+        
+
+
+       
+           /* if (field[y][i].check_value == BLACK_CELL
+                || field[i][x].check_value == BLACK_CELL
+                || i == 7)
+            {
+                int checker = 0;
+                while (checker != 2)
+                {
+                    set_line(
+                        i - (!checker ? last_x : last_y),
+                        (!checker ? &last_x : &last_y), i,
+                        (!checker ? y : x), (!checker ? HORIZ : VERTIC)
+                    );
+                    checker++;
+                }
+            }*/
+        
+        
+
+
+
+
 
     }
     return TRUE;
-
-}
-
-void check_field(int x, int y)
-{
-    if (field[y][x].check_value > 0) return;
-    field[y][x].check_value = (field[y][x].check_value == BLACK_CELL ?
-        WHITE_CELL : BLACK_CELL);
-    /*field[y][x].free_cells_x = (field[y][x].free_cells_x == -1 ?
-        7 : -1);
-    field[y][x].free_cells_y = (field[y][x].free_cells_y == -1 ?
-        7 : -1);*/
-
-    check_axis(x, y);
 
 }
 
@@ -84,7 +150,7 @@ _Bool draw_field(int pos_x, int pos_y, _Bool *trigger,
 {
     if (*click)
     {
-        check_field(pos_x, pos_y);
+        check_axis(pos_x, pos_y);
         *click = FALSE;
     }
     *trigger = TRUE;
@@ -100,7 +166,7 @@ _Bool draw_field(int pos_x, int pos_y, _Bool *trigger,
                 if (field[y][x].free_cells_x +
                     field[y][x].free_cells_y < field[y][x].check_value + 1)
                 {
-                    check_field(pos_x, pos_y); 
+                    check_axis(pos_x, pos_y);
                     return FALSE;
                 }
                 else if (field[y][x].free_cells_x +
@@ -109,10 +175,11 @@ _Bool draw_field(int pos_x, int pos_y, _Bool *trigger,
                     *trigger = FALSE;
                 }
             }
-            /* printf("  %d %d  ", field[y][x].free_cells_x + field[y][x].free_cells_y - 1
-                 , field[y][x].check_value);*/
+             
             if(pos_x == x && pos_y == y)SetConsoleTextAttribute(*c, 112);
-            printf("|%5d|", field[y][x].check_value);
+            printf("  %d %d  ", field[y][x].free_cells_x + field[y][x].free_cells_y - 1
+                , field[y][x].check_value);
+            /*printf("|%5d|", field[y][x].check_value);*/
             SetConsoleTextAttribute(*c, 7);
             
         }
