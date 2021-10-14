@@ -37,7 +37,7 @@ typedef struct CELL
 
 typedef struct POSITION { int x, y; } POS;
 
-POS set_POS(int x, int y) // конструктор для структуры POSITION
+POS set_POS(int x, int y) // ГЄГ®Г­Г±ГІГ°ГіГЄГІГ®Г° Г¤Г«Гї Г±ГІГ°ГіГЄГІГіГ°Г» POSITION
 {
     POS pos = { .x = x, .y = y };
     return pos;
@@ -88,13 +88,9 @@ start:
         switch (draw_field(cursor_pos, console))
         {
 
-        case WIN: 
-            game_end = TRUE; 
-            printf("hello");
+        case WIN: game_end = TRUE; 
         case LOSE:
-            if (--life_counter <= 0)
-                game_end = TRUE;
-            
+            if (--life_counter <= 0) game_end = TRUE;
             check_axis(cursor_pos);
             continue;
         case RUNNING:
@@ -132,7 +128,7 @@ _Bool get_keyboard_input(POS *pos)
 }
 
 
-void set_line(int dir, int* last, int i, int * cell)// перепись значений выбранной оси
+void set_line(int dir, int* last, int i, int * cell)// ГЇГҐГ°ГҐГЇГЁГ±Гј Г§Г­Г Г·ГҐГ­ГЁГ© ГўГ»ГЎГ°Г Г­Г­Г®Г© Г®Г±ГЁ
 {
     int value = i - (*last);
     for (; (*last) < i; (*last)++)
@@ -143,7 +139,7 @@ void set_line(int dir, int* last, int i, int * cell)// перепись значений выбранн
     (*last)++;
 }
 
-_Bool check_axis(POS pos)//проверка по двум осям на пересечении x and y
+_Bool check_axis(POS pos)//ГЇГ°Г®ГўГҐГ°ГЄГ  ГЇГ® Г¤ГўГіГ¬ Г®Г±ГїГ¬ Г­Г  ГЇГҐГ°ГҐГ±ГҐГ·ГҐГ­ГЁГЁ x and y
 {
     if (field[pos.y][pos.x].check_value > 0) return;
     field[pos.y][pos.x].check_value = (field[pos.y][pos.x].check_value == BLACK_CELL ?
