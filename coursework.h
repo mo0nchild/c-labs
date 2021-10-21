@@ -27,11 +27,12 @@ typedef enum
     KEY_D = 100,
     KEY_S = 115,
     KEY_W = 119,
-    KEY_SPACE = 32
+    KEY_SPACE = 32,
+    KEY_ESC = 27
 } KEY_CODE;
 typedef enum { RUNNING, WIN, LOSE } GAME_STATE;
-typedef enum { MAINMENU, SETTINGS, GAME, EDITOR } SCENES;
-typedef enum { FALSE_T, TRUE_T, ACCEPT } ACTIONS;
+typedef enum { GAME, SETTINGS, EXIT, MAINMENU} SCENES;
+typedef enum { FALSE_T, TRUE_T, ACCEPT, BACK } ACTIONS;
 
 typedef struct
 {
@@ -56,42 +57,53 @@ POSITION set_position(int x, int y) // конструктор для структуры POSITION
     return pos;
 }
 
+typedef struct
+{
+    int field_size;
+    char* filename;
+    SCENES scene;
+    CELL* field;
+} SETTING_PARAM;
+
 CELL field[7][7];
 
-int* read_field_from_file(const char* filename, int field_size);
 void set_line(int dir, int* last, int i, int* cell);
+void file_data(SETTING_PARAM* param, _Bool readonly);
 
 ACTIONS get_keyboard_input(POSITION* pos, POSITION max);
 bool check_axis(POSITION pos);
 
 GAME_STATE draw_field(POSITION pos);
 
-void run_app(void)
+
+
+void run_app(SETTING_PARAM * param)
 {
+    POSITION cursor_pos = set_position(0, 0);
+    file_data(param, TRUE);
+
+    ACTIONS input = TRUE_T;
+    for (int i = 0; i < param->field_size; i++)
+    {
+        for (int k = 0; k < param->field_size; k++) 
+            field[i][k] = set_cell((param->field + (i * param->field_size + k))->check_value, param->field_size);
+    }
+    
     int life_counter = LIFE_COUNT;
     bool game_end = FALSE;
 
-    POSITION cursor_pos = set_position(0, 0);
-
-    int* values = read_field_from_file("data.txt", 49);
-
-start:
-    for (int i = 0; i < 7; i++)
-    {
-        for (int k = 0; k < 7; k++) field[i][k] = set_cell(values[(i * 7 + k)], 7);
-    }
-
-    ACTIONS input = TRUE_T;
     while (game_end != TRUE)
     {
         switch (input)
         {
+        case BACK: game_end = TRUE; life_counter = 0;  break;
         case ACCEPT: check_axis(cursor_pos);
         case TRUE_T:
+
             CLEAR_FRAME();
             printf("\nWASD: to control\tSPACE: to accept\nLIFE: %d\n", life_counter);
 
-            switch (draw_field(cursor_pos))
+            switch (draw_field(cursor_pos, param))
             {
 
             case WIN: game_end = TRUE;
@@ -103,7 +115,7 @@ start:
             }
         case FALSE_T:break;
         }
-        input = get_keyboard_input(&cursor_pos, set_position(7, 7));
+        input = get_keyboard_input(&cursor_pos, set_position(param->field_size, param->field_size));
     }
 
     CLEAR_FRAME();
@@ -111,20 +123,35 @@ start:
         "YOU WIN" : "YOU LOSE"));
 
     Sleep(2000);
-    life_counter = LIFE_COUNT;
-    game_end = FALSE;
-    goto start;
+
+    //goto start;
 
 }
 
-int* read_field_from_file(const char* filename, int field_size)
+void file_data(SETTING_PARAM* param, _Bool readonly)
 {
-    int* result = (int*)malloc(sizeof(int) * field_size), n = 0;
-    FILE* file = fopen(filename, "rt");
+    int index = 0;
+    char dirname[261];
 
-    while (!feof(file))fscanf(file, "%d", &result[n++]);
+    sprintf(dirname, "./data/%s", param->filename);
+    FILE* file = fopen(dirname, readonly ? "rt" : "w");
 
-    return result;
+    if (readonly) {
+        fscanf(file, "%d", &(param->field_size));
+        while (!feof(file))fscanf(file, "%d", &((param->field + (index++))->check_value));
+    }
+    else
+    {
+        fprintf(file, "%d\n", param->field_size);
+        for (int i = 0; i < param->field_size; i++)
+        {
+            for (int k = 0; k < param->field_size; k++)
+                fprintf(file, "%d\t", (param->field + (i * param->field_size + k))->check_value);
+            fprintf(file, "\n");
+        }
+    }
+
+    fclose(file);
 }
 
 ACTIONS get_keyboard_input(POSITION *pos, POSITION max) // стрелочное управление WASD & SPACE
@@ -141,6 +168,7 @@ ACTIONS get_keyboard_input(POSITION *pos, POSITION max) // стрелочное управление
         pos->y = (pos->y + 1 > max.y - 1 ? max.y - 1 : pos->y + 1);
         break;
     case KEY_SPACE: state = ACCEPT; break;
+    case KEY_ESC: state = BACK; break;
     default: state = FALSE_T; break;
     }
     return state;
@@ -172,7 +200,9 @@ bool check_axis(POSITION pos)//проверка по двум осям на пересечении x and y
 }
 
 
-GAME_STATE draw_field(POSITION pos)
+
+
+GAME_STATE draw_field(POSITION pos, SETTING_PARAM *param )
 {
     _Bool trigger = TRUE;
     GAME_STATE result = RUNNING;
@@ -180,9 +210,9 @@ GAME_STATE draw_field(POSITION pos)
 
     printf("%s", FIELD_LINE);
 
-    for (int y = 0; y < 7; y++)
+    for (int y = 0; y < param->field_size; y++)
     {
-        for (int x = 0; x < 7; x++)
+        for (int x = 0; x < param->field_size; x++)
         {
         if (pos.x == x && pos.y == y) SetConsoleTextAttribute(console, 112);
 
