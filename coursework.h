@@ -4,10 +4,10 @@
 #include <math.h>
 #include <malloc.h>
 
-#include <dirent.h>
 #include <stdlib.h>
 #include <Windows.h>
 #include <string.h>
+#include <dirent.h>
 
 #define WHITE_CELL 0
 #define BLACK_CELL -1
@@ -49,7 +49,7 @@ typedef struct
     int x;
     int y;
 } POSITION;
-POSITION set_position(int x, int y) // ГЄГ®Г­Г±ГІГ°ГіГЄГІГ®Г° Г¤Г«Гї Г±ГІГ°ГіГЄГІГіГ°Г» POSITION
+POSITION set_position(int x, int y) // конструктор для структуры POSITION
 {
     POSITION pos = { .x = x, .y = y };
     return pos;
@@ -167,7 +167,7 @@ UPDATE_ACTION dialog_box(SETTING_PARAM* param, ACTIONS a, POSITION pos)
 
 UPDATE_ACTION game_loop(SETTING_PARAM* param, ACTIONS a, POSITION pos)
 {
-	printf("\n[ LIFE: %3d ] %d\n", param->life_counter, sizeof(param->field) / sizeof(CELL));
+	printf("\n[ LIFE: %3d ]\n", param->life_counter);
 	if (a == ACCEPT) check_axis(pos, param);
 	else
 	{
@@ -267,7 +267,7 @@ void print_rules(SETTING_PARAM* param)
 {
 	CLEAR_FRAME();
 	printf("current field: %s\n\n", param->filename);
-	printf("\tГЉГіГ°Г®Г¬Г Г±Гі ГЁГЈГ°Г ГҐГІГ±Гї Г­Г  ГЇГ°ГїГ¬Г®ГіГЈГ®Г«ГјГ­Г®Г© Г±ГҐГІГЄГҐ. \nГ‚ Г­ГҐГЄГ®ГІГ®Г°Г»Гµ ГЁГ§ ГЅГІГЁГµ ГїГ·ГҐГҐГЄ ГҐГ±ГІГј Г·ГЁГ±Г«Г . \nГЉГ Г¦Г¤Г Гї ГїГ·ГҐГ©ГЄГ  Г¬Г®Г¦ГҐГІ ГЎГ»ГІГј Г·ГҐГ°Г­Г®Г© ГЁГ«ГЁ ГЎГҐГ«Г®Г©. \nГ–ГҐГ«Гј Г±Г®Г±ГІГ®ГЁГІ Гў ГІГ®Г¬, Г·ГІГ®ГЎГ» Г®ГЇГ°ГҐГ¤ГҐГ«ГЁГІГј, \nГЄ ГЄГ ГЄГ®Г¬Гі ГІГЁГЇГі Г®ГІГ­Г®Г±ГЁГІГ±Гї ГЄГ Г¦Г¤Г Гї ГїГ·ГҐГ©ГЄГ .\n\tГ‘Г«ГҐГ¤ГіГѕГ№ГЁГҐ ГЇГ°Г ГўГЁГ«Г  Г®ГЇГ°ГҐГ¤ГҐГ«ГїГѕГІ, ГЄГ ГЄГЁГҐ ГїГ·ГҐГ©ГЄГЁ ГЄГ ГЄГЁГҐ :\n\t1)ГЉГ Г¦Г¤Г®ГҐ Г·ГЁГ±Г«Г® Г­Г  Г¤Г®Г±ГЄГҐ ГЇГ°ГҐГ¤Г±ГІГ ГўГ«ГїГҐГІ ГЄГ®Г«ГЁГ·ГҐГ±ГІГўГ® ГЎГҐГ«Г»Гµ ГЄГ«ГҐГІГ®ГЄ, \nГЄГ®ГІГ®Г°Г»ГҐ Г¬Г®Г¦Г­Г® ГіГўГЁГ¤ГҐГІГј ГЁГ§ ГЅГІГ®Г© ГЄГ«ГҐГІГЄГЁ,\n ГўГЄГ«ГѕГ·Г Гї ГҐГҐ Г±Г Г¬Г®ГЈГ®.ГџГ·ГҐГ©ГЄГі Г¬Г®Г¦Г­Г® ГіГўГЁГ¤ГҐГІГј ГЁГ§ Г¤Г°ГіГЈГ®Г© ГїГ·ГҐГ©ГЄГЁ,\n ГҐГ±Г«ГЁ Г®Г­ГЁ Г­Г ГµГ®Г¤ГїГІГ±Гї Гў ГІГ®Г© Г¦ГҐ Г±ГІГ°Г®ГЄГҐ ГЁГ«ГЁ Г±ГІГ®Г«ГЎГ¶ГҐ,\n ГЁ Г¬ГҐГ¦Г¤Гі Г­ГЁГ¬ГЁ Г­ГҐГІ Г·ГҐГ°Г­Г»Гµ ГїГ·ГҐГҐГЄ Гў ГЅГІГ®Г© Г±ГІГ°Г®ГЄГҐ ГЁГ«ГЁ Г±ГІГ®Г«ГЎГ¶ГҐ.\n\t2)ГЏГ°Г®Г­ГіГ¬ГҐГ°Г®ГўГ Г­Г­Г»ГҐ ГїГ·ГҐГ©ГЄГЁ Г­ГҐ Г¬Г®ГЈГіГІ ГЎГ»ГІГј Г·ГҐГ°Г­Г»Г¬ГЁ.\n\t3)ГЌГЁГЄГ ГЄГЁГҐ Г¤ГўГҐ Г·ГҐГ°Г­Г»ГҐ ГЄГ«ГҐГІГЄГЁ Г­ГҐ Г¬Г®ГЈГіГІ ГЎГ»ГІГј Г±Г¬ГҐГ¦Г­Г»Г¬ГЁ ГЇГ® ГЈГ®Г°ГЁГ§Г®Г­ГІГ Г«ГЁ ГЁГ«ГЁ ГўГҐГ°ГІГЁГЄГ Г«ГЁ.\n\t4)Г‚Г±ГҐ ГЎГҐГ«Г»ГҐ ГЄГ«ГҐГІГЄГЁ Г¤Г®Г«Г¦Г­Г» ГЎГ»ГІГј Г±Г®ГҐГ¤ГЁГ­ГҐГ­Г» ГЈГ®Г°ГЁГ§Г®Г­ГІГ Г«ГјГ­Г® ГЁГ«ГЁ ГўГҐГ°ГІГЁГЄГ Г«ГјГ­Г®.\n");
+	printf("\tКуромасу играется на прямоугольной сетке. \nВ некоторых из этих ячеек есть числа. \nКаждая ячейка может быть черной или белой. \nЦель состоит в том, чтобы определить, \nк какому типу относится каждая ячейка.\n\tСледующие правила определяют, какие ячейки какие :\n\t1)Каждое число на доске представляет количество белых клеток, \nкоторые можно увидеть из этой клетки,\n включая ее самого.Ячейку можно увидеть из другой ячейки,\n если они находятся в той же строке или столбце,\n и между ними нет черных ячеек в этой строке или столбце.\n\t2)Пронумерованные ячейки не могут быть черными.\n\t3)Никакие две черные клетки не могут быть смежными по горизонтали или вертикали.\n\t4)Все белые клетки должны быть соединены горизонтально или вертикально.\n");
 	getch();
 }
 
@@ -343,7 +343,7 @@ UPDATE_ACTION mainmenu(SETTING_PARAM* param, ACTIONS a, POSITION pos)
 		case 0: 
 			file_data(param, TRUE);
 			param->life_counter = LIFE_COUNT;
-			update_frame(game_loop, param, set_position(7, 7));
+			update_frame(game_loop, param, set_position(param->field_size, param->field_size));
 			break;
 		case 1: update_frame(settings, param, set_position(0, 3)); break;
 		case 2: return EXIT;
@@ -414,7 +414,7 @@ void file_data(SETTING_PARAM* param, _Bool readonly)
     fclose(file);
 }
 
-ACTIONS get_keyboard_input(POSITION *pos, POSITION max) // Г±ГІГ°ГҐГ«Г®Г·Г­Г®ГҐ ГіГЇГ°Г ГўГ«ГҐГ­ГЁГҐ WASD & SPACE
+ACTIONS get_keyboard_input(POSITION *pos, POSITION max) // стрелочное управление WASD & SPACE
 {
     ACTIONS state = TRUE_T;
     switch (getch())
@@ -435,14 +435,14 @@ ACTIONS get_keyboard_input(POSITION *pos, POSITION max) // Г±ГІГ°ГҐГ«Г®Г·Г­Г®ГҐ 
 }
 
 
-void set_line(int dir, int* last, int i, int * cell) // ГЇГҐГ°ГҐГ§Г ГЇГЁГ±Гј Г§Г­Г Г·ГҐГ­ГЁГ© Г±ГўГ®ГЎГ®Г­Г»Гµ ГЄГ«ГҐГІГ®ГЄ ГўГ»ГЎГ°Г Г­Г­Г®Г© Г®Г±ГЁ
+void set_line(int dir, int* last, int i, int * cell) // перезапись значений свобоных клеток выбранной оси
 {
     int value = i - (*last);
     for (; (*last) < i; (*last)++, cell += (3*dir)) *cell = value;
     (*last)++;
 }
 
-_Bool check_axis(POSITION pos, SETTING_PARAM* param) //ГЇГ°Г®ГўГҐГ°ГЄГ  ГЇГ® Г¤ГўГіГ¬ Г®Г±ГїГ¬ Г­Г  ГЇГҐГ°ГҐГ±ГҐГ·ГҐГ­ГЁГЁ x and y
+_Bool check_axis(POSITION pos, SETTING_PARAM* param) //проверка по двум осям на пересечении x and y
 {
     CELL *cell = (param->field + (pos.y * param->field_size + pos.x));
 
