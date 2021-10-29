@@ -1,4 +1,4 @@
-#pragma once//ver 1.2
+#pragma once//ver 1.5
 #include <stdio.h>
 #include <locale.h>
 #include <math.h>
@@ -11,105 +11,94 @@
 
 #define WHITE_CELL 0
 #define BLACK_CELL -1
-
-#define CLEAR_FRAME(void) system("cls")
-
 #define LIFE_COUNT 3
-
-const char FIELD_LINE[] = "\n -----\t -----\t -----\t -----\t -----\t -----\n";
+#define MAX_FILES_IN_DIR 20
+#define clear_frame(void) system("cls")
 
 typedef enum 
 {
-    KEY_A = 97,
-    KEY_D = 100,
-    KEY_S = 115,
-    KEY_W = 119,
-    KEY_SPACE = 32,
-    KEY_ESC = 27
+    key_a = 97,
+    key_d = 100,
+    key_s = 115,
+    key_w = 119,
+    key_space = 32,
+    key_esc = 27
 } KEY_CODE;
-typedef enum { RUNNING, WIN, LOSE } GAME_STATE;
-typedef enum { FALSE_T, TRUE_T, ACCEPT, BACK } ACTIONS;
-typedef enum { CONTINUE, RETURN_TO_BEGIN, EXIT } UPDATE_ACTION;
+typedef enum { RUNNING, WIN, LOSE } gstate_t;
+typedef enum { FALSE_T, TRUE_T, ACCEPT, BACK } gaction_t;
+typedef enum { CONTINUE, RETURN_TO_BEGIN, EXIT } gupdate_t;
+
+typedef char name_t[261];
+typedef _Bool bool;
+
+typedef struct{int x, y;} tuple_t;
+tuple_t tuple_c(int x, int y) // конструктор дл€ структуры tuple_t
+{
+	tuple_t constructor = { x, y };
+    return constructor;
+}
+
+typedef struct
+{
+	tuple_t free_value;
+    int check_value;
+} cell_t;
+cell_t cell_c(int check, int free)
+{
+    cell_t constructor = { tuple_c(free, free), check };
+    return constructor;
+}
 
 typedef struct 
 {
-    UPDATE_ACTION state;
-    void* return_value;
-} UPDATE_T;
-UPDATE_T set_update(UPDATE_ACTION state, _Bool return_value) 
+	name_t* array;
+	int size;
+} dir_t;
+dir_t dir_c(name_t* dir, int size) 
 {
-    UPDATE_T update = { state, return_value };
-    return update;
-}
-
-typedef char STR_NAME[261];
-
-typedef struct
-{
-    int x;
-    int y;
-} POSITION;
-POSITION set_position(int x, int y) // конструктор дл€ структуры POSITION
-{
-    POSITION pos = { .x = x, .y = y };
-    return pos;
-}
-
-typedef struct
-{
-    int free_cells_x;
-    int free_cells_y;
-    int check_value;
-} CELL;
-CELL set_cell(int check, int free)
-{
-    CELL cell = { free, free, check };
-    return cell;
+	dir_t constructor = {dir, size};
+	return constructor;
 }
 
 typedef struct
 {
     int field_size;
     char* filename;
-    CELL* field;
-    POSITION *current_cell;
-    STR_NAME* dir;
-    int dir_size;
-    int life_counter;
-} SETTING_PARAM;
+    cell_t* field;
+    tuple_t *current_cell;
+	dir_t dir;
+} gparam_t;
+
+typedef gupdate_t (*update_action_function)(gparam_t* param, gaction_t a, tuple_t pos);
 
 void set_line(int dir, int* last, int i, int* cell);
-void file_data(SETTING_PARAM* param, _Bool readonly);
-void print_list(int cursor, int size, STR_NAME* items, int begin, int end);
-void* update_frame(UPDATE_ACTION(*action)(SETTING_PARAM*, ACTIONS),
-	SETTING_PARAM* param, POSITION max);
-void save_file(SETTING_PARAM* param);
-void print_rules(SETTING_PARAM* param);
-void read_files(SETTING_PARAM* param);
+void file_data(gparam_t* param, bool readonly);
+void print_list(int cursor, int size, name_t* items, int begin, int end);
+void* update_frame(update_action_function action, gparam_t* param, tuple_t max);
+void save_file(gparam_t* param);
+void print_rules(gparam_t* param);
+void read_files(gparam_t* param);
 void start_app(void);
 
-UPDATE_ACTION dialog_box(SETTING_PARAM* param, ACTIONS a, POSITION pos);
-UPDATE_ACTION game_loop(SETTING_PARAM* param, ACTIONS a, POSITION pos);
+gupdate_t set_cell_value(gparam_t* param, gaction_t a, tuple_t pos);
+gupdate_t set_field_size(gparam_t* param, gaction_t a, tuple_t pos);
+gupdate_t set_field_values(gparam_t* param, gaction_t a, tuple_t pos);
 
-UPDATE_ACTION set_cell_value(SETTING_PARAM* param, ACTIONS a, POSITION pos);
-UPDATE_ACTION set_cell_value(SETTING_PARAM* param, ACTIONS a, POSITION pos);
-UPDATE_ACTION set_field_size(SETTING_PARAM* param, ACTIONS a, POSITION pos);
-UPDATE_ACTION set_field_values(SETTING_PARAM* param, ACTIONS a, POSITION pos);
+gupdate_t load_file(gparam_t* param, gaction_t a, tuple_t pos);
+gupdate_t mainmenu(gparam_t* param, gaction_t a, tuple_t pos);
+gupdate_t settings(gparam_t* param, gaction_t a, tuple_t pos);
+gupdate_t game_loop(gparam_t*, gaction_t, tuple_t);
 
-UPDATE_ACTION load_file(SETTING_PARAM* param, ACTIONS a, POSITION pos);
-UPDATE_ACTION settings(SETTING_PARAM* param, ACTIONS a, POSITION pos);
-UPDATE_ACTION mainmenu(SETTING_PARAM* param, ACTIONS a, POSITION pos);
+gstate_t draw_field(tuple_t pos, gparam_t* param);
+gaction_t get_keyboard_input(tuple_t* pos, tuple_t max);
 
-GAME_STATE draw_field(POSITION pos, SETTING_PARAM* param);
-ACTIONS get_keyboard_input(POSITION* pos, POSITION max);
-_Bool check_axis(POSITION pos, SETTING_PARAM* param);
+bool check_axis(tuple_t pos, gparam_t* param);
+bool dialog_box(const char* label);
 
-void* update_frame(UPDATE_ACTION(*action)(SETTING_PARAM*, ACTIONS),
-	SETTING_PARAM* param, POSITION max)
+void* update_frame(update_action_function action, gparam_t* param, tuple_t max)
 {
-	ACTIONS input = TRUE_T;
-	POSITION pos = set_position(0, 0);
-	UPDATE_ACTION update;
+	gaction_t input = TRUE_T;
+	tuple_t pos = tuple_c(0, 0);
 
 	while (1)
 	{
@@ -118,9 +107,9 @@ void* update_frame(UPDATE_ACTION(*action)(SETTING_PARAM*, ACTIONS),
 		case BACK: return;
 		case ACCEPT:
 		case TRUE_T:
-			CLEAR_FRAME();
+			clear_frame();
 			printf("\n[ W A S D: to control ] [ SPACE: to accept ] [ ESCAPE: to go back ]\n");
-			update = action(param, input, pos);
+			gupdate_t update = action(param, input, pos);
 			if (update || input == ACCEPT)
 			{
 				input = TRUE_T;
@@ -133,7 +122,14 @@ void* update_frame(UPDATE_ACTION(*action)(SETTING_PARAM*, ACTIONS),
 	}
 }
 
-void print_list(int cursor, int size, STR_NAME* items, int begin, int end)
+bool dialog_box(const char* label) 
+{
+	clear_frame();
+	printf("\n[ESC: to return]   [ANY KEY: to accept]\n\n\n\n\n\t\t\t%s\n", label);
+	return ((int)getch() == key_esc ? FALSE : TRUE);
+}
+
+void print_list(int cursor, int size, name_t* items, int begin, int end)
 {
 	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
 	printf("\n\n\n");
@@ -145,42 +141,27 @@ void print_list(int cursor, int size, STR_NAME* items, int begin, int end)
 	}
 }
 
-
-UPDATE_ACTION dialog_box(SETTING_PARAM* param, ACTIONS a, POSITION pos)
+gupdate_t game_loop(gparam_t* param, gaction_t a, tuple_t pos)
 {
-	if (a == ACCEPT)
-	{
-		switch (pos.x)
-		{
-		case 0: return EXIT;
-		case 1: return;
-		}
-	}
-	else
-	{
-		printf("\n\n\t\tARE YOU SURE?\n\n");
-		const STR_NAME items[] = { "NO", "YES" };
-		print_list(pos.x, 2, &items, 0, 2);
-	}
-	return CONTINUE;
-}
+	static int life_counter = LIFE_COUNT;
+	char *life_line = (char*)calloc(life_counter*3 + 1, sizeof(char));
+	for (int i = 0; i < life_counter; i++) strcat(life_line, "\x03  ");
 
-UPDATE_ACTION game_loop(SETTING_PARAM* param, ACTIONS a, POSITION pos)
-{
-	printf("\n[ LIFE: %3d ]\n", param->life_counter);
+	printf("\n[ LIFE: %8.8s ]\n", life_line);
 	if (a == ACCEPT) check_axis(pos, param);
 	else
 	{
-		_Bool trigger = FALSE;
+		bool trigger = FALSE;
 		switch (draw_field(pos, param))
 		{
 		case WIN: trigger = TRUE;
 		case LOSE:
-			if (--param->life_counter <= 0 || trigger == TRUE)
+			if (--life_counter <= 0 || trigger == TRUE)
 			{
-				CLEAR_FRAME();
-				printf("\n\n\n\t\tYOU %s\n", param->life_counter <= 0 ? "LOSE" : "WIN");
+				clear_frame();
+				printf("\n\n\n\t\tYOU %s\n", life_counter <= 0 ? "LOSE" : "WIN");
 				getch();
+				life_counter = LIFE_COUNT;
 				return EXIT;
 			}
 			check_axis(pos, param);
@@ -191,11 +172,8 @@ UPDATE_ACTION game_loop(SETTING_PARAM* param, ACTIONS a, POSITION pos)
 	return CONTINUE;
 }
 
-UPDATE_ACTION set_cell_value(SETTING_PARAM* param, ACTIONS a, POSITION pos)
+gupdate_t set_cell_value(gparam_t* param, gaction_t a, tuple_t pos)
 {
-	ACTIONS input = TRUE_T;
-	HANDLE c = GetStdHandle(STD_OUTPUT_HANDLE);
-
 	if (a == ACCEPT)
 	{
 		(param->field + (param->current_cell->y * param->field_size + param->current_cell->x))
@@ -204,19 +182,15 @@ UPDATE_ACTION set_cell_value(SETTING_PARAM* param, ACTIONS a, POSITION pos)
 	}
 	else
 	{
-		printf(
-			"\n\n\n\n\tset cell: %c %2d %c",
-			(pos.x == 0) ? ' ' : '<',
-			pos.x + 1,
-			(pos.x == param->field_size * 2 - 2) ? ' ' : '>'
-		);
+		printf("\n\n\n\n\tset cell: %c %2d %c", (pos.x == 0) ? ' ' : '<', pos.x + 1,
+			(pos.x == param->field_size * 2 - 2) ? ' ' : '>');
 	}
 	return CONTINUE;
 }
 
-void save_file(SETTING_PARAM* param)
+void save_file(gparam_t* param)
 {
-	CLEAR_FRAME();
+	clear_frame();
 
 	printf("\n\n\t\tfile name: ");
 	scanf("%s", param->filename);
@@ -225,133 +199,134 @@ void save_file(SETTING_PARAM* param)
 	file_data(param, FALSE);
 }
 
-UPDATE_ACTION set_field_size(SETTING_PARAM* param, ACTIONS a, POSITION pos)
+gupdate_t set_field_size(gparam_t* param, gaction_t a, tuple_t pos)
 {
 	if (a == ACCEPT)
 	{
 		param->field_size = pos.x + 4;
-		param->field = realloc(param->field, sizeof(CELL) * pow(pos.x + 4, 2));
+		param->field = realloc(param->field, sizeof(cell_t) * pow(pos.x + 4, 2));
 		for (int i = 0; i < param->field_size; i++)
 		{
 			for (int k = 0; k < param->field_size; k++)
-				*(param->field + (i * param->field_size + k)) = set_cell(0, param->field_size);
+				*(param->field + (i * param->field_size + k)) = cell_c(0, param->field_size);
 		}
 		return EXIT;
 	}
 	else
 	{
-		printf(
-			"\n\n\n\n\tset field size: %c %2d %c",
-			(pos.x == 0) ? ' ' : '<',
-			pos.x + 4,
-			(pos.x == 6) ? ' ' : '>'
-		);
+		printf("\n\n\n\n\tset field size: %c %2d %c",(pos.x == 0) ? ' ' : '<',
+			pos.x + 4, (pos.x == 6) ? ' ' : '>');
 	}
 	return CONTINUE;
 }
 
 
-UPDATE_ACTION set_field_values(SETTING_PARAM* param, ACTIONS a, POSITION pos)
+gupdate_t set_field_values(gparam_t* param, gaction_t a, tuple_t pos)
 {
 	if (a == ACCEPT)
 	{
 		*(param->current_cell) = pos;
-		update_frame(set_cell_value, param, set_position(param->field_size * 2 - 1, 0));
+		update_frame(set_cell_value, param, tuple_c(param->field_size * 2 - 1, 0));
 	}
 	else draw_field(pos, param);
 
 	return CONTINUE;
 }
 
-void print_rules(SETTING_PARAM* param)
+void print_rules(gparam_t* param)
 {
-	CLEAR_FRAME();
+	clear_frame();
 	printf("current field: %s\n\n", param->filename);
 	printf("\t уромасу играетс€ на пр€моугольной сетке. \n¬ некоторых из этих €чеек есть числа. \n ажда€ €чейка может быть черной или белой. \n÷ель состоит в том, чтобы определить, \nк какому типу относитс€ кажда€ €чейка.\n\t—ледующие правила определ€ют, какие €чейки какие :\n\t1) аждое число на доске представл€ет количество белых клеток, \nкоторые можно увидеть из этой клетки,\n включа€ ее самого.ячейку можно увидеть из другой €чейки,\n если они наход€тс€ в той же строке или столбце,\n и между ними нет черных €чеек в этой строке или столбце.\n\t2)ѕронумерованные €чейки не могут быть черными.\n\t3)Ќикакие две черные клетки не могут быть смежными по горизонтали или вертикали.\n\t4)¬се белые клетки должны быть соединены горизонтально или вертикально.\n");
 	getch();
 }
 
-void read_files(SETTING_PARAM* param)
+void read_files(gparam_t* param)
 {
-	DIR* d = opendir(".\\data");
-	struct dirent* _dir;
-	param->dir_size = 0;
-	param->dir = (STR_NAME*)calloc(1, sizeof(STR_NAME));
+	DIR* directory = opendir(".\\data");
+	struct dirent* ptr_dirent_value;
+	param->dir.size = 0;
+	param->dir.array = (name_t*)calloc(1, sizeof(name_t));
 
-	if (d)
+	if (directory) 
 	{
-		while ((_dir = readdir(d)) != NULL && param->dir_size < 20)
+		while ((ptr_dirent_value = readdir(directory)) != NULL && param->dir.size < MAX_FILES_IN_DIR)
 		{
-			param->dir = (STR_NAME*)realloc(param->dir, sizeof(STR_NAME) * (param->dir_size + 1));
-			strcpy((param->dir + param->dir_size++), _dir->d_name);
+			param->dir.array = (name_t*)realloc(param->dir.array, sizeof(name_t) * (param->dir.size + 1));
+			strcpy((param->dir.array + param->dir.size++), ptr_dirent_value->d_name);
 		}
-		closedir(d);
-		param->dir_size -= 2;
-		param->dir += 2;
+		closedir(directory);
+		param->dir.size -= 2;
+		param->dir.array += 2;
 	}
+
 }
 
 
-UPDATE_ACTION load_file(SETTING_PARAM* param, ACTIONS a, POSITION pos)
+gupdate_t load_file(gparam_t* param, gaction_t a, tuple_t pos)
 {
 	pos.y = pos.y + pos.x * 3;
-	if (a == ACCEPT && pos.y < param->dir_size)
+
+	if (a == ACCEPT && pos.y < param->dir.size)
 	{
 		param->filename = (char*)realloc(param->filename, sizeof(char) * 261);
-		strcpy(param->filename, param->dir + pos.y);
+		strcpy(param->filename, param->dir.array + pos.y);
 		return EXIT;
 	}
 	else
 	{
-		print_list(pos.y, param->dir_size, param->dir, 3 * pos.x, 3 * (pos.x + 1));
-		printf("\n\t\t\t%d/%d", pos.x + 1, (int)ceil(param->dir_size / 3.f));
+		print_list(pos.y, param->dir.size, param->dir.array, 3 * pos.x, 3 * (pos.x + 1));
+		printf("\n\t\t\t%d/%d", pos.x + 1, (int)ceil(param->dir.size / 3.f));
 	}
 	return CONTINUE;
 }
 
-UPDATE_ACTION settings(SETTING_PARAM* param, ACTIONS a, POSITION pos)
+gupdate_t settings(gparam_t* param, gaction_t a, tuple_t pos)
 {
 	if (a == ACCEPT)
 	{
 		switch (pos.y)
 		{
 		case 0:
-			update_frame(set_field_size, param, set_position(7, 0));
-			update_frame(set_field_values, param, set_position(param->field_size, param->field_size));
+			update_frame(set_field_size, param, tuple_c(7, 0));
+			update_frame(set_field_values, param, tuple_c(param->field_size, param->field_size));
 			save_file(param); break;
 		case 1:
 			read_files(param);
-			update_frame(load_file, param, set_position(ceil(param->dir_size / 3.f), 3)); break;
+			update_frame(load_file, param, tuple_c(ceil(param->dir.size / 3.f), 3)); break;
 		case 2: print_rules(param);  break;
 		}
 	}
 	else
 	{
-		const STR_NAME items[] = { "edit\0", "load\0", "rules\0" };
+		const name_t items[] = { "edit\0", "load\0", "rules\0" };
 		print_list(pos.y, 3, items, 0, 3);
 	}
 	return CONTINUE;
 }
 
-UPDATE_ACTION mainmenu(SETTING_PARAM* param, ACTIONS a, POSITION pos)
+gupdate_t mainmenu(gparam_t* param, gaction_t a, tuple_t pos)
 {
-	HANDLE c = GetStdHandle(STD_OUTPUT_HANDLE);
 	if (a == ACCEPT)
 	{
 		switch (pos.y)
 		{
-		case 0: 
+		case 0:;
+			bool trigger = FALSE;
 			file_data(param, TRUE);
-			param->life_counter = LIFE_COUNT;
-			update_frame(game_loop, param, set_position(param->field_size, param->field_size));
+			while (!trigger) 
+			{
+				update_frame(game_loop, param, tuple_c(param->field_size, param->field_size));
+				trigger = dialog_box("DO YOU WANT EXIT?");
+			}
 			break;
-		case 1: update_frame(settings, param, set_position(0, 3)); break;
+		case 1: update_frame(settings, param, tuple_c(0, 3)); break;
 		case 2: return EXIT;
 		}
 	}
 	else
 	{
-		const STR_NAME items[] = { "start", "settings", "exit" };
+		const name_t items[] = { "start", "settings", "exit" };
 		print_list(pos.y, 3, items, 0, 3);
 	}
 
@@ -361,14 +336,15 @@ UPDATE_ACTION mainmenu(SETTING_PARAM* param, ACTIONS a, POSITION pos)
 
 void start_app(void)
 {
+	setlocale(LC_ALL, "rus");
 	system("mkdir data");
 
-	SETTING_PARAM param =
+	gparam_t param =
 	{
 		.field_size = 7,
 		.filename = (char*)calloc(261, sizeof(char)),
-		.field = (CELL*)calloc(49, sizeof(CELL)),
-		.current_cell = (POSITION*)calloc(1, sizeof(POSITION)),
+		.field = (cell_t*)calloc(49, sizeof(cell_t)),
+		.current_cell = (tuple_t*)calloc(1, sizeof(tuple_t)),
 	};
 	strcpy(param.filename, "data.txt");
 	file_data(&param, TRUE);
@@ -376,16 +352,16 @@ void start_app(void)
 	for (int i = 0; i < param.field_size; i++)
 	{
 		for (int k = 0; k < param.field_size; k++)
-			*(param.field + (i * param.field_size + k)) = set_cell(0, param.field_size);
+			*(param.field + (i * param.field_size + k)) = cell_c(0, param.field_size);
 	}
-	update_frame(mainmenu, &param, set_position(0, 3));
+	update_frame(mainmenu, &param, tuple_c(0, 3));
 
 }
 
-void file_data(SETTING_PARAM* param, _Bool readonly)
+void file_data(gparam_t* param, bool readonly)
 {
     int index = 0;
-    STR_NAME dirname;
+    name_t dirname;
 
     sprintf(dirname, "./data/%s", param->filename);
     FILE* file = fopen(dirname, readonly ? "rt" : "w");
@@ -393,10 +369,10 @@ void file_data(SETTING_PARAM* param, _Bool readonly)
 
     if (readonly) {
         fscanf(file, "%d", &(param->field_size));
-        param->field = (CELL*)realloc(param->field, sizeof(CELL) * pow(param->field_size, 2));
+        param->field = (cell_t*)realloc(param->field, sizeof(cell_t) * pow(param->field_size, 2));
         for (int i = 0; i < pow(param->field_size, 2); i++) 
         {
-            (param->field + i)->free_cells_x = (param->field + i)->free_cells_y = param->field_size;
+            (param->field + i)->free_value.x = (param->field + i)->free_value.y = param->field_size;
         }
         while (!feof(file))fscanf(file, "%d", &((param->field + (index++))->check_value));
     }
@@ -414,21 +390,21 @@ void file_data(SETTING_PARAM* param, _Bool readonly)
     fclose(file);
 }
 
-ACTIONS get_keyboard_input(POSITION *pos, POSITION max) // стрелочное управление WASD & SPACE
+gaction_t get_keyboard_input(tuple_t *pos, tuple_t max) // стрелочное управление WASD & SPACE
 {
-    ACTIONS state = TRUE_T;
+    gaction_t state = TRUE_T;
     switch (getch())
     {
-    case KEY_A: pos->x = (pos->x - 1 < 0 ? 0 : pos->x - 1); break;
-    case KEY_D: 
+    case key_a: pos->x = (pos->x - 1 < 0 ? 0 : pos->x - 1); break;
+    case key_d: 
         pos->x = (pos->x + 1 > max.x - 1 ? max.x - 1 : pos->x + 1);
         break;
-    case KEY_W: pos->y = (pos->y - 1 < 0 ? 0 : pos->y - 1); break;
-    case KEY_S: 
+    case key_w: pos->y = (pos->y - 1 < 0 ? 0 : pos->y - 1); break;
+    case key_s: 
         pos->y = (pos->y + 1 > max.y - 1 ? max.y - 1 : pos->y + 1);
         break;
-    case KEY_SPACE: state = ACCEPT; break;
-    case KEY_ESC: state = BACK; break;
+    case key_space: state = ACCEPT; break;
+    case key_esc: state = BACK; break;
     default: state = FALSE_T; break;
     }
     return state;
@@ -442,36 +418,38 @@ void set_line(int dir, int* last, int i, int * cell) // перезапись значений своб
     (*last)++;
 }
 
-_Bool check_axis(POSITION pos, SETTING_PARAM* param) //проверка по двум ос€м на пересечении x and y
+bool check_axis(tuple_t pos, gparam_t* ptr_param) //проверка по двум ос€м на пересечении x and y
 {
-    CELL *cell = (param->field + (pos.y * param->field_size + pos.x));
+    cell_t *cell = (ptr_param->field + (pos.y * ptr_param->field_size + pos.x));
 
     if (cell->check_value > 0) return ;
     cell->check_value = (cell->check_value == BLACK_CELL ? WHITE_CELL : BLACK_CELL);
 
-    POSITION last = set_position(0,0);
-    for (int i = 0; i <= param->field_size; i++)
+    tuple_t last = tuple_c(0,0);
+    for (int i = 0; i <= ptr_param->field_size; i++)
     {
-        if ((param->field + (pos.y * param->field_size + i))->check_value == BLACK_CELL
-            || i == param->field_size) 
+        if ((ptr_param->field + (pos.y * ptr_param->field_size + i))->check_value == BLACK_CELL
+            || i == ptr_param->field_size)
         {
-            set_line(1, &last.x, i, &((param->field + (pos.y * param->field_size + last.x))->free_cells_x));
+            set_line(1, &last.x, i, &((ptr_param->field + 
+				(pos.y * ptr_param->field_size + last.x))->free_value.x));
         }
             
-        if ((param->field + (i * param->field_size + pos.x))->check_value == BLACK_CELL
-            || i == param->field_size) 
+        if ((ptr_param->field + (i * ptr_param->field_size + pos.x))->check_value == BLACK_CELL
+            || i == ptr_param->field_size)
         {
-            set_line(param->field_size, &last.y, i, &((param->field + (last.y * param->field_size + pos.x))->free_cells_y));
+            set_line(ptr_param->field_size, &last.y, i, &((ptr_param->field + 
+				(last.y * ptr_param->field_size + pos.x))->free_value.y));
         }     
     }
     return TRUE;
 }
 
-GAME_STATE draw_field(POSITION pos, SETTING_PARAM *param )
+gstate_t draw_field(tuple_t pos, gparam_t *param )
 {
-    _Bool trigger = TRUE;
-    GAME_STATE result = RUNNING;
-    CELL* cell;
+    bool trigger = TRUE;
+    gstate_t result = RUNNING;
+    cell_t* cell;
     HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
     
     printf("\n\n");
@@ -484,9 +462,9 @@ GAME_STATE draw_field(POSITION pos, SETTING_PARAM *param )
 
         if (cell->check_value > 0)
         {
-            if (cell->free_cells_x + cell->free_cells_y < cell->check_value + 1)
+            if (cell->free_value.x + cell->free_value.y < cell->check_value + 1)
                 result = LOSE;
-            else if (cell->free_cells_x + cell->free_cells_y != cell->check_value + 1)
+            else if (cell->free_value.x + cell->free_value.y != cell->check_value + 1)
                 trigger = FALSE;
 
             printf("|%5d|", cell->check_value);
