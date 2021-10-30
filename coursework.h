@@ -100,7 +100,7 @@ typedef struct
 } gparam_t;
 
 typedef gupdate_t (*update_action_function)(int param_size, void* param[], 
-	gaction_t a, tuple_t pos);
+	gaction_t action, tuple_t pos);
 
 void set_line(int dir, int* last, int i, int* cell);
 void print_list(int cursor, int size, name_t* items, int begin, int end);
@@ -111,15 +111,15 @@ void* update_frame(update_action_function action, tuple_t max,
 void print_rules(void);
 void start_app(void);
 
-gupdate_t set_cell_value(int size, void* args[], gaction_t a, tuple_t pos);
-gupdate_t set_field_size(int size, void* args[],gaction_t a, tuple_t pos);
-gupdate_t set_field_values(int size, void* args[], gaction_t a, tuple_t pos);
-gupdate_t dialog_box(int size, void* args[], gaction_t a, tuple_t pos);
+gupdate_t set_cell_value(int size, void* args[], gaction_t action, tuple_t pos);
+gupdate_t set_field_size(int size, void* args[],gaction_t action, tuple_t pos);
+gupdate_t set_field_values(int size, void* args[], gaction_t action, tuple_t pos);
+gupdate_t dialog_box(int size, void* args[], gaction_t action, tuple_t pos);
 
-gupdate_t load_file(int size, void* args[], gaction_t a, tuple_t pos);
-gupdate_t mainmenu(int size, void* args[], gaction_t a, tuple_t pos);
-gupdate_t settings(int size, void* args[], gaction_t a, tuple_t pos);
-gupdate_t game_loop(int size, void* args[], gaction_t a, tuple_t pos);
+gupdate_t load_file(int size, void* args[], gaction_t action, tuple_t pos);
+gupdate_t mainmenu(int size, void* args[], gaction_t action, tuple_t pos);
+gupdate_t settings(int size, void* args[], gaction_t action, tuple_t pos);
+gupdate_t game_loop(int size, void* args[], gaction_t action, tuple_t pos);
 
 gstate_t draw_field(tuple_t pos, field_t* param);
 gaction_t get_keyboard_input(tuple_t* pos, tuple_t max);
@@ -169,10 +169,10 @@ void print_list(int cursor, int size, name_t* items, int begin, int end)
 	}
 }
 
-gupdate_t set_cell_value(int size, void* args[], gaction_t a, tuple_t pos)
+gupdate_t set_cell_value(int size, void* args[], gaction_t action, tuple_t pos)
 {
 	int* field_size = (int*)args;
-	if (a == ACCEPT) 
+	if (action == ACCEPT)
 	{
 		int value = pos.x;
 		return gupdate_c(EXIT, &value);
@@ -185,9 +185,9 @@ gupdate_t set_cell_value(int size, void* args[], gaction_t a, tuple_t pos)
 	return gupdate_c(CONTINUE, NULL);
 }
 
-gupdate_t set_field_size(int size, void* args[], gaction_t a, tuple_t pos)
+gupdate_t set_field_size(int size, void* args[], gaction_t action, tuple_t pos)
 {
-	if (a == ACCEPT)
+	if (action == ACCEPT)
 	{
 		field_t field;
 
@@ -209,10 +209,10 @@ gupdate_t set_field_size(int size, void* args[], gaction_t a, tuple_t pos)
 	return gupdate_c(CONTINUE, NULL);
 }
 
-gupdate_t dialog_box(int size, void* args[], gaction_t a, tuple_t pos) 
+gupdate_t dialog_box(int size, void* args[], gaction_t action, tuple_t pos)
 {
 	dir_t* items = (dir_t*)args;
-	if (a == ACCEPT) 
+	if (action == ACCEPT)
 	{
 		int select = (pos.y);
 		return gupdate_c(EXIT, &select);
@@ -224,16 +224,16 @@ gupdate_t dialog_box(int size, void* args[], gaction_t a, tuple_t pos)
 	return gupdate_c(CONTINUE, NULL);
 }
 
-gupdate_t set_field_values(int size, void* args[], gaction_t a, tuple_t pos)
+gupdate_t set_field_values(int size, void* args[], gaction_t action, tuple_t pos)
 {
 	field_t* field = (field_t*)args;
-	if (a == ACCEPT)
+	if (action == ACCEPT)
 	{
 		int *value = (int*)update_frame(set_cell_value, tuple_c(field->size * 2, 0), FALSE, &(field->size));
 		printf("%d\n", *value);
 		(field->array + (pos.y * field->size + pos.x))->check_value = *value;
 	}
-	else if (a == BACK)
+	else if (action == BACK)
 	{
 		dir_t items = dir_c((name_t*)calloc(3, sizeof(name_t)), 3);
 		strcpy(items.array, "continue");
@@ -283,17 +283,17 @@ bool read_files(dir_t * param)
 	return TRUE;
 }
 
-gupdate_t load_file(int size, void* args[], gaction_t a, tuple_t pos)
+gupdate_t load_file(int size, void* args[], gaction_t action, tuple_t pos)
 {
 	pos.y = pos.y + pos.x * 3;
 	dir_t *param = (dir_t*)args;
-	if (a == ACCEPT && pos.y < param->size)
+	if (action == ACCEPT && pos.y < param->size)
 	{
 		name_t filename;
 		strcpy(filename, param->array + pos.y);
 		return gupdate_c(EXIT, filename);
 	}
-	else if(a == BACK) return gupdate_c(EXIT, NULL);
+	else if(action == BACK) return gupdate_c(EXIT, NULL);
 	else
 	{
 		print_list(pos.y, param->size, param->array, 3 * pos.x, 3 * (pos.x + 1));
@@ -302,10 +302,10 @@ gupdate_t load_file(int size, void* args[], gaction_t a, tuple_t pos)
 	return gupdate_c(CONTINUE, NULL);
 }
 
-gupdate_t settings(int size, void* args[], gaction_t a, tuple_t pos)
+gupdate_t settings(int size, void* args[], gaction_t action, tuple_t pos)
 {
 	field_t* field = (field_t*)(args);
-	if (a == ACCEPT)
+	if (action == ACCEPT)
 	{
 		switch (pos.y)
 		{
@@ -335,7 +335,7 @@ gupdate_t settings(int size, void* args[], gaction_t a, tuple_t pos)
 		case 3: return gupdate_c(EXIT, field);
 		}
 	}
-	else if(a == BACK) return gupdate_c(EXIT, field);
+	else if(action == BACK) return gupdate_c(EXIT, field);
 	else 
 	{
 		printf("\ncurrent field: %s", field->name);
@@ -346,11 +346,11 @@ gupdate_t settings(int size, void* args[], gaction_t a, tuple_t pos)
 	return gupdate_c(CONTINUE, NULL);
 }
 
-gupdate_t mainmenu(int size, void* args[], gaction_t a, tuple_t pos)
+gupdate_t mainmenu(int size, void* args[], gaction_t action, tuple_t pos)
 {
 	gparam_t *param = (gparam_t*)args;
 
-	if (a == ACCEPT)
+	if (action == ACCEPT)
 	{
 		switch (pos.y)
 		{
@@ -463,7 +463,7 @@ gaction_t get_keyboard_input(tuple_t *pos, tuple_t max) // стрелочное 
 	return state;
 }
 
-gupdate_t game_loop(int size, void* args[], gaction_t a, tuple_t pos)
+gupdate_t game_loop(int size, void* args[], gaction_t action, tuple_t pos)
 {
 	static int life_counter = LIFE_COUNT;
 	char* life_line = (char*)calloc(life_counter * 3 + 1, sizeof(char));
@@ -472,7 +472,7 @@ gupdate_t game_loop(int size, void* args[], gaction_t a, tuple_t pos)
 	field_t* field = (field_t*)args;
 
 	printf("\n[ LIFE: %8.8s ]\n", life_line);
-	if (a == ACCEPT) 
+	if (action == ACCEPT)
 	{
 		bool check = check_axis(pos, args); 
 		/*if (!check)
@@ -480,7 +480,7 @@ gupdate_t game_loop(int size, void* args[], gaction_t a, tuple_t pos)
 			(field->array + (pos.y * field->size + pos.x))->color = RED;
 		}*/
 	}
-	else if (a == BACK)
+	else if (action == BACK)
 	{
 		dir_t items = dir_c((name_t*)calloc(2, sizeof(name_t)), 2);
 		strcpy(items.array, "continue");
