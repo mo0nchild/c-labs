@@ -15,6 +15,9 @@
 #define MAX_FILES_IN_DIR 20
 #define clear_frame(void) system("cls")
 
+const char* WIN_LABEL = "\t=====  |   |      |===|  |   |  |  /|  |===  |===|    \\      \\ \n\t  |    |=| |      |--/   |=| |  | / |  |     |__-|   /_\\    / \\ \n\t  |    |_| |      |___|  |_| |  |/  |  |     |      /   \\  /   \\ \n";
+const char* LOSE_LABEL = "\t=====  |   |      |===|  |===|  |===|  |  /|  |===  |===|    \\      \\ \n\t  |    |=| |      |   |  |__-|  |   |  | / |  |     |__-|   /_\\    / \\\n\t  |    |_| |      |   |  |      |___|  |/  |  |     |      /   \\  /   \\ \n";
+const char* NAME_LABEL = "\t\t| /  \\  /   |==|  |==|  |\\ /|    \\    |==|  \\  /\n\t\t|\\     /    |__|  |  |  | \\ |   /_\\   |       /\n\t\t| \\   /     |	  |__|  |   |  /   \\  |__|   /";
 
 typedef enum 
 {
@@ -30,7 +33,8 @@ typedef enum
 	RED = 64,
 	GREEN = 32,
 	DEFAULT = 7,
-	SELECT = 112
+	SELECT = 112,
+	MIX = 95,
 } color_t;
 typedef enum { RUNNING, WIN, LOSE } gstate_t;
 typedef enum { FALSE_T, TRUE_T, ACCEPT, BACK } gaction_t;
@@ -120,10 +124,11 @@ gupdate_t mainmenu(void* args[], gaction_t action, tuple_t pos);
 gupdate_t settings(void* args[], gaction_t action, tuple_t pos);
 gupdate_t game_loop(void* args[], gaction_t action, tuple_t pos);
 
-gstate_t draw_field(tuple_t pos, field_t* param);
+void draw_field(tuple_t pos, field_t* param);
+gstate_t check_field(tuple_t pos, field_t* param);
 gaction_t get_keyboard_input(tuple_t* pos, tuple_t max);
 
-bool check_axis(tuple_t pos, gparam_t* param);
+bool set_axies(tuple_t pos, field_t* ptr_param);
 bool file_data(field_t* field, bool readonly);
 bool read_files(dir_t* param);
 
@@ -249,7 +254,9 @@ gupdate_t set_field_values(void* args[], gaction_t action, tuple_t pos)
 			return gupdate_c(EXIT, field);
 		}
 	}
+	(field->array + (pos.y * field->size + pos.x))->color = SELECT;
 	draw_field(pos, field);
+	(field->array + (pos.y * field->size + pos.x))->color = DEFAULT;
 	return gupdate_c(CONTINUE, NULL);
 }
 
@@ -354,9 +361,24 @@ gupdate_t mainmenu(void* args[], gaction_t action, tuple_t pos)
 		switch (pos.y)
 		{
 		case 0:;
-			bool trigger = FALSE;
+
+
 			bool check = file_data(&(param->field), TRUE);
-			update_frame(game_loop, tuple_c(param->field.size, param->field.size), TRUE, param);
+			if (!check) 
+			{
+				clear_frame();
+				printf("\n\n\n\t\t\tcan't load field\n");
+				getch(); break;
+
+			}
+			bool* game_result = (bool*)update_frame(game_loop, tuple_c(param->field.size, param->field.size), TRUE, param);
+			if (game_result != NULL)
+			{
+				bool decode = *game_result;
+				clear_frame();
+				printf("\n\n\n\n%s\n", decode ? WIN_LABEL : LOSE_LABEL);
+				getch();
+			}
 
 			break;
 		case 1:; 
@@ -366,16 +388,12 @@ gupdate_t mainmenu(void* args[], gaction_t action, tuple_t pos)
 		case 2: return gupdate_c(EXIT, NULL);
 		}
 	}
-	else
-	{
-		printf("\n\t\t%s\n\t\t%s\n\t\t%s", 
-			"| /  \\  /   |==|  |==|  |\\ /|    \\    |==|  \\  /", 
-			"|\\     /    |__|  |  |  | \\ |   /_\\   |       /",
-			"| \\   /     |	  |__|  |   |  /   \\  |__|   /"
-		);
-		const name_t items[] = { "start", "settings", "exit" };
-		print_list(pos.y, 3, items, 0, 3);
-	}
+	
+
+	printf("\n%s", NAME_LABEL);
+	const name_t items[] = { "start", "settings", "exit" };
+	print_list(pos.y, 3, items, 0, 3);
+	
 
 	return gupdate_c(CONTINUE, NULL);
 
@@ -393,12 +411,7 @@ void start_app(void)
 	};
 	strcpy(param.field.name, "data.txt");
 	file_data(&param, TRUE);
-
-	for (int i = 0; i < param.field.size; i++)
-	{
-		for (int k = 0; k < param.field.size; k++)
-			*(param.field.array + (i * param.field.size + k)) = cell_c(0, param.field.size, DEFAULT);
-	}//------------------------------------------------------------------------------------------------------------------------------------
+	
 	update_frame(mainmenu, tuple_c(0, 3), FALSE, &param);
 
 }
@@ -471,15 +484,7 @@ gupdate_t game_loop(void* args[], gaction_t action, tuple_t pos)
 	field_t* field = (field_t*)args;
 
 	printf("\n[ LIFE: %8.8s ]\n", life_line);
-	if (action == ACCEPT)
-	{
-		bool check = check_axis(pos, args); 
-		/*if (!check)
-		{
-			(field->array + (pos.y * field->size + pos.x))->color = RED;
-		}*/
-	}
-	else if (action == BACK)
+	if (action == BACK)
 	{
 		dir_t items = dir_c((name_t*)calloc(2, sizeof(name_t)), 2);
 		strcpy(items.array, "continue");
@@ -488,29 +493,37 @@ gupdate_t game_loop(void* args[], gaction_t action, tuple_t pos)
 		switch (*(int*)update_frame(dialog_box, tuple_c(0, 3), FALSE, &items))
 		{
 		case 0: return gupdate_c(RETURN_TO_BEGIN, NULL);
-		case 1: return gupdate_c(EXIT, NULL);
+		case 1:
+			life_counter = LIFE_COUNT;
+			return gupdate_c(EXIT, NULL);
 		}
-	}
-	else
-	{
-		bool trigger = FALSE;
-		switch (draw_field(pos, field))
-		{
-		case WIN: trigger = TRUE;
-		case LOSE:
-			if (--life_counter <= 0 || trigger == TRUE)
-			{
-				clear_frame();
-				printf("\n\n\n\t\tYOU %s\n", life_counter <= 0 ? "LOSE" : "WIN");
-				getch();
-				life_counter = LIFE_COUNT;
-				return gupdate_c(EXIT, TRUE);
-			}
-			check_axis(pos, field);
+	}	
+	else if (action == ACCEPT) set_axies(pos, args);
 
-			return gupdate_c(RETURN_TO_BEGIN, NULL);
-		case RUNNING:break;
+	gstate_t state = check_field(pos, field);
+	draw_field(pos, field); 
+
+	bool result;
+
+	switch (state)
+	{
+	case WIN:;
+		result = TRUE;
+		return gupdate_c(EXIT, &result);
+	case LOSE:
+		printf("\npress any key to continue\n\n");
+		getch();
+		if (--life_counter <= 0)
+		{
+			result = FALSE;
+			life_counter = LIFE_COUNT;
+			return gupdate_c(EXIT, &result);
 		}
+
+		set_axies(pos, field);
+		/*return gupdate_c(RETURN_TO_BEGIN, NULL);*/
+
+	case RUNNING: break;
 	}
 	return gupdate_c(CONTINUE, NULL);
 }
@@ -522,42 +535,65 @@ void set_line(int dir, int* last, int i, int * cell) // перезапись з�
 	(*last)++;
 }
 
-bool check_axis(tuple_t pos, field_t* ptr_param) //проверка по двум осям на пересечении x and y
+bool set_axies(tuple_t pos, field_t* ptr_param) //проверка по двум осям на пересечении x and y
 {
 	cell_t *cell = (ptr_param->array + (pos.y * ptr_param->size + pos.x));
 
-	if (cell->check_value > 0) return ;
-	cell->check_value = (cell->check_value == BLACK_CELL ? WHITE_CELL : BLACK_CELL);
+	if (cell->check_value > 0 || 
+		((pos.x != 0) && (cell - 1)->check_value == BLACK_CELL || 
+		(pos.x != ptr_param->size - 1) && (cell + 1)->check_value == BLACK_CELL ||
+		(cell + ptr_param->size)->check_value == BLACK_CELL ||
+		(cell - ptr_param->size)->check_value == BLACK_CELL )) 
+		return FALSE;
 
-	bool result = TRUE;
+	cell->check_value = (cell->check_value == BLACK_CELL ? WHITE_CELL : BLACK_CELL);
 
 	tuple_t last = tuple_c(0,0);
 	for (int i = 0; i <= ptr_param->size; i++)
 	{
-		if ( i != pos.x && (ptr_param->array + (pos.y * ptr_param->size + i))->check_value
-			== (ptr_param->array + (pos.y * ptr_param->size + pos.x))->check_value)result = FALSE;
-
-		if ((ptr_param->array + (pos.y * ptr_param->size + i))->check_value == BLACK_CELL
-			|| i == ptr_param->size)
-		{
-			set_line(1, &last.x, i, &((ptr_param->array + 
-				(pos.y * ptr_param->size + last.x))->free_value.x));
-		}
-			
-		if ((ptr_param->array + (i * ptr_param->size + pos.x))->check_value == BLACK_CELL
-			|| i == ptr_param->size)
-		{
-			set_line(ptr_param->size, &last.y, i, &((ptr_param->array + 
-				(last.y * ptr_param->size + pos.x))->free_value.y));
-		}     
+		if ((ptr_param->array + (pos.y * ptr_param->size + i))->check_value == BLACK_CELL || i == ptr_param->size)
+			set_line(1, &last.x, i, &((ptr_param->array + (pos.y * ptr_param->size + last.x))->free_value.x));
+				
+		if ((ptr_param->array + (i * ptr_param->size + pos.x))->check_value == BLACK_CELL || i == ptr_param->size)
+			set_line(ptr_param->size, &last.y, i, &((ptr_param->array + (last.y * ptr_param->size + pos.x))->free_value.y)); 
 	}
+
+	return TRUE;
+}
+
+gstate_t check_field(tuple_t pos, field_t* param)
+{
+	cell_t* cell;
+	gstate_t result = RUNNING;
+	bool trigger = TRUE;
+
+	for (int y = 0; y < param->size; y++) 
+	{
+		for (int x = 0; x < param->size; x++) 
+		{
+			cell = (param->array + (y * param->size + x));
+			if (pos.x == x && pos.y == y)cell->color = SELECT;
+			else cell->color = DEFAULT;
+
+			if (cell->check_value <= 0) continue;	
+
+			if (cell->free_value.x + cell->free_value.y < cell->check_value + 1)
+			{
+				result = LOSE;
+				cell->color = cell->color == SELECT ? MIX : RED;
+			}
+			else if (cell->free_value.x + cell->free_value.y != cell->check_value + 1)
+				trigger = FALSE;
+			else if (cell->free_value.x + cell->free_value.y == cell->check_value + 1)
+				cell->color = cell->color == SELECT ? MIX : GREEN;
+		}
+	}
+	if (trigger) result = WIN;
 	return result;
 }
 
-gstate_t draw_field(tuple_t pos, field_t *param )
+void draw_field(tuple_t pos, field_t *param )
 {
-	bool trigger = TRUE;
-	gstate_t result = RUNNING;
 	cell_t* cell;
 	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
 	
@@ -567,26 +603,13 @@ gstate_t draw_field(tuple_t pos, field_t *param )
 		for (int x = 0; x < param->size; x++)
 		{
 		cell = (param->array + (y * param->size + x));
-		if (pos.x == x && pos.y == y) SetConsoleTextAttribute(console, 112);
-	/*	else SetConsoleTextAttribute(console, cell->color);*/
-		if (cell->check_value > 0)
-		{
-			if (cell->free_value.x + cell->free_value.y < cell->check_value + 1)
-			{
-	/*			SetConsoleTextAttribute(console, 64);*/
-				result = LOSE;
-			}
-			else if (cell->free_value.x + cell->free_value.y != cell->check_value + 1)
-				trigger = FALSE;
-			//else if (cell->free_value.x + cell->free_value.y == cell->check_value + 1)
-			//	SetConsoleTextAttribute(console, 32);
-			printf("|%5d|", cell->check_value);
-		}
+		SetConsoleTextAttribute(console, cell->color);
+
+		if (cell->check_value > 0)printf("|%5d|", cell->check_value);
 		else printf("|%5c|", cell->check_value == WHITE_CELL ? ' ' : 'X');
-		SetConsoleTextAttribute(console, 7);
+
 		}
 		printf("\n\n");
 	}   
-	if (trigger) result = WIN;
-	return result;
+	return;
 }
