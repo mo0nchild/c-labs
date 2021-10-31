@@ -385,10 +385,18 @@ gupdate_t mainmenu(void* args[], gaction_t action, tuple_t pos)
 			field_t *field = (field_t*)update_frame(settings, tuple_c(0, 4), FALSE, &param->field);
 			param->field = *field;
 			break;
-		case 2: return gupdate_c(EXIT, NULL);
+		case 2:;
+			dir_t items = dir_c((name_t*)calloc(2, sizeof(name_t)), 2);
+			strcpy(items.array, "RETURN");
+			strcpy(items.array + 1, "EXIT");
+
+			switch (*(int*)update_frame(dialog_box, tuple_c(0, 2), FALSE, &items))
+			{
+			case 0: return gupdate_c(RETURN_TO_BEGIN, NULL);
+			case 1:return gupdate_c(EXIT, NULL);
+			}
 		}
 	}
-	
 
 	printf("\n%s", NAME_LABEL);
 	const name_t items[] = { "start", "settings", "exit" };
@@ -490,7 +498,7 @@ gupdate_t game_loop(void* args[], gaction_t action, tuple_t pos)
 		strcpy(items.array, "continue");
 		strcpy(items.array + 1, "leave");
 
-		switch (*(int*)update_frame(dialog_box, tuple_c(0, 3), FALSE, &items))
+		switch (*(int*)update_frame(dialog_box, tuple_c(0, 2), FALSE, &items))
 		{
 		case 0: return gupdate_c(RETURN_TO_BEGIN, NULL);
 		case 1:
