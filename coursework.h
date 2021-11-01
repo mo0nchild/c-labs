@@ -1,4 +1,9 @@
 ﻿#pragma once//ver 1.5
+
+/*
+* подключаемые заголовочные файлы
+*/
+
 #include <stdio.h>
 #include <locale.h>
 #include <math.h>
@@ -9,15 +14,31 @@
 #include <string.h>
 #include <dirent.h>
 
+/*
+* константы для настройки работы приложения 
+*/
+
 #define WHITE_CELL 0
 #define BLACK_CELL -1
 #define LIFE_COUNT 3
 #define MAX_FILES_IN_DIR 20
+#define MIN_FIELD_SIZE 4
+#define MAX_FIELD_SIZE 10
+#define FILES_ON_PAGE 3
 #define clear_frame(void) system("cls")
+
+/*
+* константы для отрисовки баннеров
+*/
 
 const char* WIN_LABEL = "\t=====  |   |      |===|  |   |  |  /|  |===  |===|    \\      \\ \n\t  |    |=| |      |--/   |=| |  | / |  |     |__-|   /_\\    / \\ \n\t  |    |_| |      |___|  |_| |  |/  |  |     |      /   \\  /   \\ \n";
 const char* LOSE_LABEL = "\t=====  |   |      |===|  |===|  |===|  |  /|  |===  |===|    \\      \\ \n\t  |    |=| |      |   |  |__-|  |   |  | / |  |     |__-|   /_\\    / \\\n\t  |    |_| |      |   |  |      |___|  |/  |  |     |      /   \\  /   \\ \n";
 const char* NAME_LABEL = "\t\t| /  \\  /   |==|  |==|  |\\ /|    \\    |==|  \\  /\n\t\t|\\     /    |__|  |  |  | \\ |   /_\\   |       /\n\t\t| \\   /     |	  |__|  |   |  /   \\  |__|   /";
+
+/*
+* создание типа KEY_CODE для работы с клавишами
+* значения присваиваются в соответствии с кодами клавиатурных символов
+*/
 
 typedef enum 
 {
@@ -28,6 +49,12 @@ typedef enum
 	key_space = 32,
 	key_esc = 27
 } KEY_CODE;
+
+/*
+* определение типа color_t для маркировки цветов, которые используются при отрисовки интерфейса
+* значения соответствуют кодам цветов.
+*/
+
 typedef enum
 {
 	RED = 64,
@@ -36,23 +63,54 @@ typedef enum
 	SELECT = 112,
 	MIX = 95,
 } color_t;
-typedef enum { RUNNING, WIN, LOSE } gstate_t;
-typedef enum { FALSE_T, TRUE_T, ACCEPT, BACK } gaction_t;
-typedef enum { CONTINUE, RETURN_TO_BEGIN, EXIT } fupdate_t;
 
-typedef char name_t[261];
-typedef _Bool bool;
+/*
+* тип gstate_t необходим для работы с текущим внутриигровым состоянием:
+*	STATE_RUNNING - обычное состояние 
+*	STATE_LOSE - пользователь допустил ошибку во время игры
+*	STATE_WIN - пользователь заполнил поле правильно
+*/
+typedef enum { STATE_RUNNING, STATE_WIN, STATE_LOSE } gstate_t; 
+
+/*
+* тип kaction_t необходим для обработки состояний нажатых клавишь пользователем:
+*	INPUT_ERROR - пользователь нажал не верную клавишу
+*	INPUT_NORMALLY - пользователь нажал клавишу для смены положение курсора
+*	INPUT_ACCEPT - пользователь нажал клавишу для потверждения 
+*	INPUT_BACK - пользователь нажал клавишу "возврата" 
+*/
+typedef enum { INPUT_ERROR, INPUT_NORMALLY, INPUT_ACCEPT, INPUT_BACK } kaction_t;
+/*
+* тип fupdate_t предназначен для обработки состояния отрисовки интерфейса
+*	FRAME_CONTINUE - отрисовка продолжается 
+*	FRAME_RETURN - вернуться в начало отрисовки
+*	FRAME_EXIT - выйти из отрисовки данного кадра и вернуть значения
+*/
+typedef enum { FRAME_CONTINUE, FRAME_RETURN, FRAME_EXIT } fupdate_t;
+
+typedef char name_t[261]; //строковый тип определенный для работы с названиями
+typedef _Bool bool; //опредение булевого типа 
+
+/*
+* структура gupdate_t определяет состояние и действие для текущего кадра 
+*	frame_update_state - для хранения состояния
+*	return_value - указатель на возвращаемое значение
+*/
 
 typedef struct 
 {
 	fupdate_t frame_update_state;
 	void* return_value;
 } gupdate_t;
-gupdate_t gupdate_c(fupdate_t f, void* v) 
+gupdate_t gupdate_c(fupdate_t frame_update_state, void* return_value) // конструктор для структуры gupdate_t
 {
-	gupdate_t constructor = { f, v };
+	gupdate_t constructor = { frame_update_state, return_value };
 	return constructor;
 }
+
+/*
+* структура tuple_t хранение двух значений (координат)
+*/
 
 typedef struct{int x, y;} tuple_t;
 tuple_t tuple_c(int x, int y) // конструктор для структуры tuple_t
@@ -61,28 +119,48 @@ tuple_t tuple_c(int x, int y) // конструктор для структур�
 	return constructor;
 }
 
+/*
+* структура cell_t описывает свойства клетки игрового поля
+*	free_value - кортеж для хранение видимых клеток по двум осям
+*	check_value - значение клетки
+*	color - цвет для отрисовки
+*/
+
 typedef struct
 {
 	tuple_t free_value;
 	int check_value;
 	color_t color;
 } cell_t;
-cell_t cell_c(int check, int free, color_t color)
+cell_t cell_c(int check, int free, color_t color)// конструктор для структуры cell_t
 {
 	cell_t constructor = { tuple_c(free, free), check ,color };
 	return constructor;
 }
+
+/*
+* структура dir_t описывает значения и размер массива строк
+*	array - массив строк
+*	size - размер массива
+*/
 
 typedef struct 
 {
 	name_t* array;
 	int size;
 } dir_t;
-dir_t dir_c(name_t* dir, int size) 
+dir_t dir_c(name_t* dir, int size) // конструктор для структуры dir_t
 {
 	dir_t constructor = {dir, size};
 	return constructor;
 }
+
+/*
+* структура field_t описывает игровое поле
+*	array - массив клеток типа cell_t
+*	size - размер поля (массива)
+*	name - название поля 
+*/
 
 typedef struct 
 {
@@ -90,23 +168,18 @@ typedef struct
 	name_t name;
 	int size;
 }field_t;
-field_t field_c(cell_t* a, name_t n,int s) 
+field_t field_c(cell_t* array, name_t name,int size) // конструктор для структуры field_t
 {
-	field_t constructor = { a, n, s };
+	field_t constructor = { array, name, size };
 	return constructor;
 }
 
-typedef struct
-{
-	field_t field;
-	tuple_t *current_cell;
-	dir_t dir;
-} gparam_t;
-
-typedef gupdate_t (*update_action_function)(void* args[], gaction_t action, tuple_t pos);
+// определение типа функции, вызываемой при отрисовки кадра 
+typedef gupdate_t (*update_action_function)(void* args[], kaction_t action, tuple_t pos);
 
 void set_line(int dir, int* last, int i, int* cell);
-void print_list(int cursor, int size, name_t* items, int begin, int end);
+void draw_list(int cursor, dir_t * param, int begin, int end);
+void draw_field(tuple_t pos, field_t* param);
 
 void* update_frame(update_action_function action, tuple_t max,
 	bool back_use, void* param[]);
@@ -114,165 +187,161 @@ void* update_frame(update_action_function action, tuple_t max,
 void print_rules(void);
 void start_app(void);
 
-gupdate_t set_cell_value(void* args[], gaction_t action, tuple_t pos);
-gupdate_t set_field_size(void* args[], gaction_t action, tuple_t pos);
-gupdate_t set_field_values(void* args[], gaction_t action, tuple_t pos);
-gupdate_t dialog_box(void* args[], gaction_t action, tuple_t pos);
+gupdate_t set_cell_value(void* args[], kaction_t action, tuple_t pos);
+gupdate_t set_field_size(void* args[], kaction_t action, tuple_t pos);
+gupdate_t set_field_values(void* args[], kaction_t action, tuple_t pos);
+gupdate_t dialog_box(void* args[], kaction_t action, tuple_t pos);
 
-gupdate_t load_file(void* args[], gaction_t action, tuple_t pos);
-gupdate_t mainmenu(void* args[], gaction_t action, tuple_t pos);
-gupdate_t settings(void* args[], gaction_t action, tuple_t pos);
-gupdate_t game_loop(void* args[], gaction_t action, tuple_t pos);
+gupdate_t load_file(void* args[], kaction_t action, tuple_t pos);
+gupdate_t mainmenu(void* args[], kaction_t action, tuple_t pos);
+gupdate_t settings(void* args[], kaction_t action, tuple_t pos);
+gupdate_t game_loop(void* args[], kaction_t action, tuple_t pos);
 
-void draw_field(tuple_t pos, field_t* param);
-gstate_t check_field(tuple_t pos, field_t* param);
-gaction_t get_keyboard_input(tuple_t* pos, tuple_t max);
+gstate_t check_field(field_t* param);
+kaction_t get_keyboard_input(tuple_t* pos, tuple_t max);
 
 bool set_axies(tuple_t pos, field_t* ptr_param);
 bool file_data(field_t* field, bool readonly);
-bool read_files(dir_t* param);
+bool read_files_in_dir(dir_t* param);
 
 void* update_frame(update_action_function action, tuple_t max, 
 	bool back_use, void * param[])
 {
-	gaction_t input = TRUE_T;
+	kaction_t input = INPUT_NORMALLY;
 	tuple_t pos = tuple_c(0, 0);
 
 	while (1)
 	{
 		switch (input)
 		{
-		case BACK: if (!back_use) break;
-		case ACCEPT: 
-		case TRUE_T:
+		case INPUT_BACK: if (!back_use) break;
+		case INPUT_ACCEPT: 
+		case INPUT_NORMALLY:
+
 			clear_frame();
-			printf("\n[ W A S D: to control ] [ SPACE: to accept ] [ %18.18s ]\n", 
-				(back_use) ? "ESCAPE: to go back" : "==================");
+			printf("\n[ W A S D: ПРЕМЕСТИТЬ КУРСОР ] [ SPACE: ПОДТВЕРДИТЬ ] [ %18.18s ]\n", 
+				(back_use) ? "ESCAPE: ВЕРНУТЬСЯ" : "==================");
+
 			gupdate_t update = action(param, input, pos);
-			if (update.frame_update_state || input == ACCEPT)
+			if (update.frame_update_state || input == INPUT_ACCEPT)
 			{
-				input = TRUE_T;
-				if (update.frame_update_state == EXIT) return update.return_value;
+				input = INPUT_NORMALLY;
+				if (update.frame_update_state == FRAME_EXIT) return update.return_value;
 				else continue;
 			}
-		case FALSE_T: break;
+		case INPUT_ERROR: break;
 		}
 		input = get_keyboard_input(&pos, max);
 	}
 }
 
-void print_list(int cursor, int size, name_t* items, int begin, int end)
+void draw_list(int cursor, dir_t* param, int begin, int end)
 {
 	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
-	printf("\n\n\n");
 	for (int i = begin; i < end; i++)
 	{
-		if (cursor == i)SetConsoleTextAttribute(console, 112);
-		printf("\n\t\t\t[ %20.20s ]\n", i < size ? *(items + i) : "null");
-		SetConsoleTextAttribute(console, 7);
+		if (cursor == i)SetConsoleTextAttribute(console, SELECT);
+		printf("\n\t\t\t[ %20.20s ]\n", i < param->size ? *(param->array + i) : "ПУСТО");
+		SetConsoleTextAttribute(console, DEFAULT);
 	}
 }
 
-gupdate_t set_cell_value(void* args[], gaction_t action, tuple_t pos)
+gupdate_t set_cell_value(void* args[], kaction_t action, tuple_t pos)
 {
 	int* field_size = (int*)args;
-	if (action == ACCEPT)
+	if (action == INPUT_ACCEPT)
 	{
 		int value = pos.x;
-		return gupdate_c(EXIT, &value);
+		return gupdate_c(FRAME_EXIT, &value);
 	}
 	else
 	{
-		printf("\n\n\n\n\t\t[ set cell: %c %2d %c ]", (pos.x == 0) ? ' ' : '<', pos.x,
+		printf("\n\n\n\n\t\t[ ЗНАЧЕНИЕ: %c %2d %c ]", (pos.x == 0) ? ' ' : '<', pos.x,
 			(pos.x == *field_size * 2 - 1) ? ' ' : '>');
 	}
-	return gupdate_c(CONTINUE, NULL);
+	return gupdate_c(FRAME_CONTINUE, NULL);
 }
 
-gupdate_t set_field_size(void* args[], gaction_t action, tuple_t pos)
+gupdate_t set_field_size(void* args[], kaction_t action, tuple_t pos)
 {
-	if (action == ACCEPT)
+	if (action == INPUT_ACCEPT)
 	{
 		field_t field;
 
-		field.size = pos.x + 4;
-		field.array = (cell_t*)calloc(pow(pos.x + 4, 2), sizeof(cell_t));
+		field.size = pos.x + MIN_FIELD_SIZE;
+		field.array = (cell_t*)calloc(pow(field.size, 2), sizeof(cell_t));
 
 		for (int i = 0; i < field.size; i++)
 		{
 			for (int k = 0; k < field.size; k++)
 				*(field.array + (i * field.size + k)) = cell_c(0, field.size, DEFAULT);
 		}//------------------------------------------------------------------------------------------------------------------------------
-		return gupdate_c(EXIT, &field);
+		return gupdate_c(FRAME_EXIT, &field);
 	}
-	else
-	{
-		printf("\n\n\n\n\t\t[ set field size: %c %2d %c ]",(pos.x == 0) ? ' ' : '<',
-			pos.x + 4, (pos.x == 6) ? ' ' : '>');
-	}
-	return gupdate_c(CONTINUE, NULL);
+	
+	printf("\n\n\n\n\t\t[ РАЗМЕР ПОЛЯ: %c %2d %c ]",(pos.x == 0) ? ' ' : '<',
+		pos.x + MIN_FIELD_SIZE, (pos.x == MAX_FIELD_SIZE - MIN_FIELD_SIZE) ? ' ' : '>');
+	
+	return gupdate_c(FRAME_CONTINUE, NULL);
 }
 
-gupdate_t dialog_box(void* args[], gaction_t action, tuple_t pos)
+gupdate_t dialog_box(void* args[], kaction_t action, tuple_t pos)
 {
 	dir_t* items = (dir_t*)args;
-	if (action == ACCEPT)
+	if (action == INPUT_ACCEPT)
 	{
 		int select = (pos.y);
-		return gupdate_c(EXIT, &select);
+		return gupdate_c(FRAME_EXIT, &select);
 	}
 
-	printf("\n\n\n\t\t%s\n", "WHAT DO YOU WANT TO DO?");
-	print_list(pos.y, items->size, items->array, 0, items->size);
+	printf("\n\n\n\t\t\t%s\n", "ЧТО ВЫ ХОТИТЕ СДЕЛАТЬ?\n\n\n");
+	draw_list(pos.y, items, 0, items->size);
 
-	return gupdate_c(CONTINUE, NULL);
+	return gupdate_c(FRAME_CONTINUE, NULL);
 }
 
-gupdate_t set_field_values(void* args[], gaction_t action, tuple_t pos)
+gupdate_t set_field_values(void* args[], kaction_t action, tuple_t pos)
 {
 	field_t* field = (field_t*)args;
-	if (action == ACCEPT)
+	if (action == INPUT_ACCEPT)
 	{
-		int *value = (int*)update_frame(set_cell_value, tuple_c(field->size * 2, 0), FALSE, &(field->size));
-		printf("%d\n", *value);
-		(field->array + (pos.y * field->size + pos.x))->check_value = *value;
+		(field->array + (pos.y * field->size + pos.x))->check_value = 
+			*(int*)update_frame(set_cell_value, tuple_c(field->size * 2, 0), FALSE, &(field->size));
 	}
-	else if (action == BACK)
+	else if (action == INPUT_BACK)
 	{
-		dir_t items = dir_c((name_t*)calloc(3, sizeof(name_t)), 3);
-		strcpy(items.array, "continue");
-		strcpy(items.array + 1, "exit");
-		strcpy(items.array + 2, "save");
+		name_t list[] = { "ПРОДОЛЖИТЬ", "ВЫЙТИ", "СОХРАНИТЬ" };
+		dir_t items = dir_c(list, 3);
 		switch (*(int*)update_frame(dialog_box, tuple_c(0, 3), FALSE, &items))
 		{
 		case 0: break;
-		case 1: return gupdate_c(EXIT, NULL);
+		case 1: return gupdate_c(FRAME_EXIT, NULL);
 		case 2: 
 			clear_frame();
-			printf("\n\n\n\t\t\t[ input field name ]: ");
+			printf("\n\n\n\t\t\t[ ВВЕДИТЕ НАЗВАНИЕ ]: ");
 			scanf("%s", field->name);
-			return gupdate_c(EXIT, field);
+			return gupdate_c(FRAME_EXIT, field);
 		}
 	}
-	(field->array + (pos.y * field->size + pos.x))->color = SELECT;
+
 	draw_field(pos, field);
-	(field->array + (pos.y * field->size + pos.x))->color = DEFAULT;
-	return gupdate_c(CONTINUE, NULL);
+
+	return gupdate_c(FRAME_CONTINUE, NULL);
 }
 
 void print_rules(void)
 {
 	clear_frame();
-	printf("\tКуромасу играется на прямоугольной сетке. \nВ некоторых из этих ячеек есть числа. \nКаждая ячейка может быть черной или белой. \nЦель состоит в том, чтобы определить, \nк какому типу относится каждая ячейка.\n\tСледующие правила определяют, какие ячейки какие :\n\t1)Каждое число на доске представляет количество белых клеток, \nкоторые можно увидеть из этой клетки,\n включая ее самого.Ячейку можно увидеть из другой ячейки,\n если они находятся в той же строке или столбце,\n и между ними нет черных ячеек в этой строке или столбце.\n\t2)Пронумерованные ячейки не могут быть черными.\n\t3)Никакие две черные клетки не могут быть смежными по горизонтали или вертикали.\n\t4)Все белые клетки должны быть соединены горизонтально или вертикально.\n");
+	printf("\n\t\tКуромасу играется на прямоугольной сетке. \n\t\tВ некоторых из этих ячеек есть числа. \n\t\tКаждая ячейка может быть черной или белой. \n\t\tЦель состоит в том, чтобы определить, \n\t\tк какому типу относится каждая ячейка.\n\t\tСледующие правила определяют, какие ячейки какие :\n\n\t\t\t1)Каждое число на доске представляет \n\t\tколичество белых клеток, которые можно увидеть из этой клетки,\n\t\t включая ее самого.Ячейку можно увидеть из другой ячейки,\n\t\t если они находятся в той же строке или столбце,\n\t\t и между ними нет черных ячеек в этой строке или столбце.\n\t\t\t2)Пронумерованные ячейки не могут быть черными.\n\t\t\t3)Никакие две черные клетки не могут быть смежными \n\t\tпо горизонтали или вертикали.\n\t\t\t4)Все белые клетки должны быть соединены горизонтально \n\t\tили вертикально.\n");
+	printf("\n\t\t\t\tНАЖМИТЕ КЛАВИШУ ДЛЯ ПРОДОЛЖЕНИЯ\n\n");
 	getch();
 }
 
-bool read_files(dir_t * param)
+bool read_files_in_dir(dir_t * param)
 {
 	DIR* directory = opendir(".\\data");
 	struct dirent* ptr_dirent_value;
-	param->size = 0;
-	param->array = (name_t*)calloc(1, sizeof(name_t));
+	*param = dir_c((name_t*)calloc(1, sizeof(name_t)), 1);
 
 	if (!directory) return FALSE;
 	
@@ -282,36 +351,34 @@ bool read_files(dir_t * param)
 		strcpy((param->array + param->size++), ptr_dirent_value->d_name);
 	}
 	closedir(directory);
-
-	param->size -= 2;
-	param->array += 2;
+	*param = dir_c(param->array + 3, param->size - 3);
 
 	return TRUE;
 }
 
-gupdate_t load_file(void* args[], gaction_t action, tuple_t pos)
+gupdate_t load_file(void* args[], kaction_t action, tuple_t pos)
 {
-	pos.y = pos.y + pos.x * 3;
+	pos.y = pos.y + pos.x * FILES_ON_PAGE;
 	dir_t *param = (dir_t*)args;
-	if (action == ACCEPT && pos.y < param->size)
+	if (action == INPUT_ACCEPT && pos.y < param->size)
 	{
 		name_t filename;
 		strcpy(filename, param->array + pos.y);
-		return gupdate_c(EXIT, filename);
+		return gupdate_c(FRAME_EXIT, filename);
 	}
-	else if(action == BACK) return gupdate_c(EXIT, NULL);
+	else if(action == INPUT_BACK) return gupdate_c(FRAME_EXIT, NULL);
 	else
 	{
-		print_list(pos.y, param->size, param->array, 3 * pos.x, 3 * (pos.x + 1));
-		printf("\n\t\t\tpage: %d/%d", pos.x + 1, (int)ceil(param->size / 3.f));
+		draw_list(pos.y, param, FILES_ON_PAGE * pos.x, FILES_ON_PAGE * (pos.x + 1));
+		printf("\n\t\t\tpage: %d/%d", pos.x + 1, (int)ceil(param->size / (double)FILES_ON_PAGE));
 	}
-	return gupdate_c(CONTINUE, NULL);
+	return gupdate_c(FRAME_CONTINUE, NULL);
 }
 
-gupdate_t settings(void* args[], gaction_t action, tuple_t pos)
+gupdate_t settings(void* args[], kaction_t action, tuple_t pos)
 {
 	field_t* field = (field_t*)(args);
-	if (action == ACCEPT)
+	if (action == INPUT_ACCEPT)
 	{
 		switch (pos.y)
 		{
@@ -324,54 +391,52 @@ gupdate_t settings(void* args[], gaction_t action, tuple_t pos)
 				if (!file_data(save_field, FALSE))
 				{
 					clear_frame();
-					printf("\n\n\n\t\t\t[ can't save field ]");
+					printf("\n\n\n\t\t\t[ НЕВОЗМОЖНО СОХРАНИТЬ ]\n");
 				}
 				else *field = *save_field;
 			}
 			break;
 		case 1:;
 			dir_t dir;
-			if (read_files(&dir)) 
+			if (read_files_in_dir(&dir)) 
 			{
 				name_t* filename = (name_t*)update_frame(load_file, tuple_c(ceil(dir.size / 3.f), 3), TRUE, &dir);
 				if(filename != NULL)strcpy(field->name, *filename);
 			}
 			break;
 		case 2: print_rules();  break;
-		case 3: return gupdate_c(EXIT, field);
+		case 3: return gupdate_c(FRAME_EXIT, field);
 		}
 	}
-	else if(action == BACK) return gupdate_c(EXIT, field);
-	else 
-	{
-		printf("\ncurrent field: %s", field->name);
+	else if(action == INPUT_BACK) return gupdate_c(FRAME_EXIT, field);
+	
+	printf("\nТЕКУЩЕЕ ПОЛЕ: %s\n\n\n", field->name);
 
-		const name_t items[] = { "edit", "load", "rules", "back" };
-		print_list(pos.y, 4, items, 0, 4);
-	}
-	return gupdate_c(CONTINUE, NULL);
+	const name_t list[] = { "СОЗДАТЬ", "ЗАГРУЗИТЬ", "ПРАВИЛА", "НАЗАД" };
+	dir_t items = dir_c(list, 4);
+
+	draw_list(pos.y, &items, 0, 4);
+	
+	return gupdate_c(FRAME_CONTINUE, NULL);
 }
 
-gupdate_t mainmenu(void* args[], gaction_t action, tuple_t pos)
+gupdate_t mainmenu(void* args[], kaction_t action, tuple_t pos)
 {
-	gparam_t *param = (gparam_t*)args;
+	field_t *field = (field_t*)args;
 
-	if (action == ACCEPT)
+	if (action == INPUT_ACCEPT)
 	{
 		switch (pos.y)
 		{
 		case 0:;
-
-
-			bool check = file_data(&(param->field), TRUE);
+			bool check = file_data(field, TRUE);
 			if (!check) 
 			{
 				clear_frame();
-				printf("\n\n\n\t\t\tcan't load field\n");
+				printf("\n\n\n\t\t\tНЕВОЗМОЖНО ЗАГРУЗИТЬ ПОЛЕ: %s\n", field->name);
 				getch(); break;
-
 			}
-			bool* game_result = (bool*)update_frame(game_loop, tuple_c(param->field.size, param->field.size), TRUE, param);
+			bool* game_result = (bool*)update_frame(game_loop, tuple_c(field->size, field->size), TRUE, field);
 			if (game_result != NULL)
 			{
 				bool decode = *game_result;
@@ -382,28 +447,28 @@ gupdate_t mainmenu(void* args[], gaction_t action, tuple_t pos)
 
 			break;
 		case 1:; 
-			field_t *field = (field_t*)update_frame(settings, tuple_c(0, 4), FALSE, &param->field);
-			param->field = *field;
+			*field = *(field_t*)update_frame(settings, tuple_c(0, 4), FALSE, field);
 			break;
 		case 2:;
-			dir_t items = dir_c((name_t*)calloc(2, sizeof(name_t)), 2);
-			strcpy(items.array, "RETURN");
-			strcpy(items.array + 1, "EXIT");
+
+			name_t list[] = { "ВЕРНУТЬСЯ", "ВЫЙТИ" };
+			dir_t items = dir_c(list, 2);
 
 			switch (*(int*)update_frame(dialog_box, tuple_c(0, 2), FALSE, &items))
 			{
-			case 0: return gupdate_c(RETURN_TO_BEGIN, NULL);
-			case 1:return gupdate_c(EXIT, NULL);
+			case 0: return gupdate_c(FRAME_RETURN, NULL);
+			case 1:return gupdate_c(FRAME_EXIT, NULL);
 			}
 		}
 	}
 
-	printf("\n%s", NAME_LABEL);
-	const name_t items[] = { "start", "settings", "exit" };
-	print_list(pos.y, 3, items, 0, 3);
-	
+	printf("\n%s\n\n\n", NAME_LABEL);
 
-	return gupdate_c(CONTINUE, NULL);
+	name_t list[] = {"НАЧАТЬ", "РЕДАКТОР", "ВЫЙТИ"};
+	dir_t items = dir_c(list, 3);
+	draw_list(pos.y, &items, 0, 3);
+
+	return gupdate_c(FRAME_CONTINUE, NULL);
 
 }
 
@@ -412,26 +477,17 @@ void start_app(void)
 	setlocale(LC_ALL, "rus");
 	system("mkdir data");
 
-	gparam_t param =
-	{
-		.field = {.name = (char*)calloc(261, sizeof(char))},
-		.current_cell = (tuple_t*)calloc(1, sizeof(tuple_t)),
-	};
-	strcpy(param.field.name, "data.txt");
-	file_data(&param, TRUE);
-	
-	update_frame(mainmenu, tuple_c(0, 3), FALSE, &param);
-
+	field_t field = { .name = "data.txt"};
+	update_frame(mainmenu, tuple_c(0, 3), FALSE, &field);
 }
 
 bool file_data(field_t* field, bool readonly)
 {
 	name_t dirname;
 	FILE* file;
-
 	if(!readonly)strcat(field->name, ".txt");
-
 	sprintf(dirname, "./data/%s", field->name);
+
 	if (!(file = fopen(dirname, readonly ? "rt" : "w"))) return FALSE;
 
 	if (readonly) 
@@ -448,8 +504,7 @@ bool file_data(field_t* field, bool readonly)
 		while (!feof(file))fscanf(file, "%d", &((field->array + (index++))->check_value));
 	}
 	else
-	{
-		
+	{	
 		fprintf(file, "%d\n", field->size);
 		for (int i = 0; i < field->size; i++)
 		{
@@ -458,14 +513,13 @@ bool file_data(field_t* field, bool readonly)
 			fprintf(file, "\n");
 		}
 	}
-
 	fclose(file);
 	return TRUE;
 }
 
-gaction_t get_keyboard_input(tuple_t *pos, tuple_t max) // стрелочное управление WASD & SPACE
+kaction_t get_keyboard_input(tuple_t *pos, tuple_t max) // стрелочное управление WASD & SPACE
 {
-	gaction_t state = TRUE_T;
+	kaction_t state = INPUT_NORMALLY;
 	switch (getch())
 	{
 	case key_a: pos->x = (pos->x - 1 < 0 ? 0 : pos->x - 1); break;
@@ -476,14 +530,14 @@ gaction_t get_keyboard_input(tuple_t *pos, tuple_t max) // стрелочное 
 	case key_s: 
 		pos->y = (pos->y + 1 > max.y - 1 ? max.y - 1 : pos->y + 1);
 		break;
-	case key_space: state = ACCEPT; break;
-	case key_esc: state = BACK; break;
-	default: state = FALSE_T; break;
+	case key_space: state = INPUT_ACCEPT; break;
+	case key_esc: state = INPUT_BACK; break;
+	default: state = INPUT_ERROR; break;
 	}
 	return state;
 }
 
-gupdate_t game_loop(void* args[], gaction_t action, tuple_t pos)
+gupdate_t game_loop(void* args[], kaction_t action, tuple_t pos)
 {
 	static int life_counter = LIFE_COUNT;
 	char* life_line = (char*)calloc(life_counter * 3 + 1, sizeof(char));
@@ -491,49 +545,44 @@ gupdate_t game_loop(void* args[], gaction_t action, tuple_t pos)
 
 	field_t* field = (field_t*)args;
 
-	printf("\n[ LIFE: %8.8s ]\n", life_line);
-	if (action == BACK)
+	printf("\n[ ЖИЗНИ: %8.8s ]\n", life_line);
+	if (action == INPUT_BACK)
 	{
-		dir_t items = dir_c((name_t*)calloc(2, sizeof(name_t)), 2);
-		strcpy(items.array, "continue");
-		strcpy(items.array + 1, "leave");
+		name_t list[] = { "ПРОДОЛЖИТЬ", "ВЫЙТИ" };
+		dir_t items = dir_c(list, 2);
 
 		switch (*(int*)update_frame(dialog_box, tuple_c(0, 2), FALSE, &items))
 		{
-		case 0: return gupdate_c(RETURN_TO_BEGIN, NULL);
+		case 0: return gupdate_c(FRAME_RETURN, NULL);
 		case 1:
 			life_counter = LIFE_COUNT;
-			return gupdate_c(EXIT, NULL);
+			return gupdate_c(FRAME_EXIT, NULL);
 		}
 	}	
-	else if (action == ACCEPT) set_axies(pos, args);
+	else if (action == INPUT_ACCEPT) set_axies(pos, args);
 
-	gstate_t state = check_field(pos, field);
+	gstate_t state = check_field(field);
 	draw_field(pos, field); 
-
-	bool result;
+	bool result = TRUE;
 
 	switch (state)
 	{
-	case WIN:;
-		result = TRUE;
-		return gupdate_c(EXIT, &result);
-	case LOSE:
-		printf("\npress any key to continue\n\n");
+	case STATE_WIN: 
+		life_counter = LIFE_COUNT;
+		return gupdate_c(FRAME_EXIT, &result);
+	case STATE_LOSE:
+		printf("\n\t\t\tНАЖМИТЕ КЛАВИШУ ДЛЯ ПРОДОЛЖЕНИЯ\n\n");
 		getch();
 		if (--life_counter <= 0)
 		{
 			result = FALSE;
 			life_counter = LIFE_COUNT;
-			return gupdate_c(EXIT, &result);
+			return gupdate_c(FRAME_EXIT, &result);
 		}
-
 		set_axies(pos, field);
-		/*return gupdate_c(RETURN_TO_BEGIN, NULL);*/
-
-	case RUNNING: break;
+	case STATE_RUNNING: break;
 	}
-	return gupdate_c(CONTINUE, NULL);
+	return gupdate_c(FRAME_CONTINUE, NULL);
 }
 
 void set_line(int dir, int* last, int i, int * cell) // перезапись значений свобоных клеток выбранной оси
@@ -569,34 +618,29 @@ bool set_axies(tuple_t pos, field_t* ptr_param) //проверка по двум
 	return TRUE;
 }
 
-gstate_t check_field(tuple_t pos, field_t* param)
+gstate_t check_field(field_t* param)
 {
-	cell_t* cell;
-	gstate_t result = RUNNING;
+	gstate_t result = STATE_RUNNING;
 	bool trigger = TRUE;
 
-	for (int y = 0; y < param->size; y++) 
+	for (int i = 0; i < pow(param->size, 2); i++)
 	{
-		for (int x = 0; x < param->size; x++) 
+		cell_t* cell = (param->array + i);
+		if (cell->check_value <= 0) continue;	
+
+		if (cell->free_value.x + cell->free_value.y < cell->check_value + 1)
 		{
-			cell = (param->array + (y * param->size + x));
-			if (pos.x == x && pos.y == y)cell->color = SELECT;
-			else cell->color = DEFAULT;
-
-			if (cell->check_value <= 0) continue;	
-
-			if (cell->free_value.x + cell->free_value.y < cell->check_value + 1)
-			{
-				result = LOSE;
-				cell->color = cell->color == SELECT ? MIX : RED;
-			}
-			else if (cell->free_value.x + cell->free_value.y != cell->check_value + 1)
-				trigger = FALSE;
-			else if (cell->free_value.x + cell->free_value.y == cell->check_value + 1)
-				cell->color = cell->color == SELECT ? MIX : GREEN;
+			result = STATE_LOSE;
+			cell->color = RED;
 		}
+		else 
+		{
+			if (cell->free_value.x + cell->free_value.y != cell->check_value + 1)trigger = FALSE;
+			else cell->color = GREEN;
+		}
+		
 	}
-	if (trigger) result = WIN;
+	if (trigger) result = STATE_WIN;
 	return result;
 }
 
@@ -610,14 +654,18 @@ void draw_field(tuple_t pos, field_t *param )
 	{
 		for (int x = 0; x < param->size; x++)
 		{
-		cell = (param->array + (y * param->size + x));
-		SetConsoleTextAttribute(console, cell->color);
 
+		cell = (param->array + (y * param->size + x));
+		if (cell->color != DEFAULT) cell->color = (pos.x == x && pos.y == y) ? MIX : cell->color;
+		else cell->color = (pos.x == x && pos.y == y) ? SELECT : DEFAULT;
+
+		SetConsoleTextAttribute(console, cell->color);
 		if (cell->check_value > 0)printf("|%5d|", cell->check_value);
 		else printf("|%5c|", cell->check_value == WHITE_CELL ? ' ' : 'X');
+
+		cell->color = DEFAULT;
 
 		}
 		printf("\n\n");
 	}   
-	return;
 }
